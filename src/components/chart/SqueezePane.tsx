@@ -83,7 +83,7 @@ export function SqueezePane({ resolution, visibleRange }: Props) {
   return (
     <div className="border-t border-gray-800">
       <div className="text-[10px] text-gray-500 px-2 py-0.5">TTM Squeeze</div>
-      <div ref={containerRef} className="w-full h-[80px]" />
+      <div ref={containerRef} className="w-full h-[60px] sm:h-[80px]" />
     </div>
   );
 }

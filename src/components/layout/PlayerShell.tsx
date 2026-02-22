@@ -37,7 +37,7 @@ export function PlayerShell() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#0a0e17] text-gray-100">
+    <div className="flex flex-col h-[100dvh] bg-[#0a0e17] text-gray-100 overflow-hidden">
       {/* Header */}
       <header className="bg-[#0d1117] border-b border-gray-800 px-3 py-2 flex items-center justify-between gap-2 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">

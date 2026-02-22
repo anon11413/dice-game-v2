@@ -26,13 +26,13 @@ export function ChartPage() {
   const isPlayerMode = location.pathname.startsWith('/play');
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full overflow-hidden">
       {/* Chart area */}
       <div className="flex flex-col flex-1 min-w-0">
         <TickerBar />
 
         {/* Toolbar */}
-        <div className="flex items-center gap-2 sm:gap-4 px-2 sm:px-4 py-1.5 bg-[#0d1117] border-b border-gray-800 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-4 px-2 sm:px-4 py-1.5 bg-[#0d1117] border-b border-gray-800 flex-wrap flex-shrink-0">
           <ResolutionSelector selected={resolution} onChange={setResolution} />
           <ChartModeToggle mode={chartMode} onChange={setChartMode} />
           <div className="flex-1" />
@@ -52,11 +52,11 @@ export function ChartPage() {
           <PriceChart resolution={resolution} mode={chartMode} activeAsset={activeAsset} onVisibleRangeChange={handleVisibleRangeChange} />
         </div>
 
-        {/* Sub-panes */}
-        {indicators.volume && <VolumePane resolution={resolution} visibleRange={visibleRange} />}
-        {indicators.rsi && <RsiPane resolution={resolution} visibleRange={visibleRange} />}
-        {indicators.macd && <MacdPane resolution={resolution} visibleRange={visibleRange} />}
-        {indicators.ttmSqueeze && <SqueezePane resolution={resolution} visibleRange={visibleRange} />}
+        {/* Sub-panes — flex-shrink-0 prevents layout thrashing on mobile */}
+        {indicators.volume && <div className="flex-shrink-0"><VolumePane resolution={resolution} visibleRange={visibleRange} /></div>}
+        {indicators.rsi && <div className="flex-shrink-0"><RsiPane resolution={resolution} visibleRange={visibleRange} /></div>}
+        {indicators.macd && <div className="flex-shrink-0"><MacdPane resolution={resolution} visibleRange={visibleRange} /></div>}
+        {indicators.ttmSqueeze && <div className="flex-shrink-0"><SqueezePane resolution={resolution} visibleRange={visibleRange} /></div>}
       </div>
 
       {/* Trade Panel - Desktop: always visible sidebar, Mobile: overlay */}

@@ -95,14 +95,24 @@ export function PriceChart({ resolution, mode, activeAsset = 'A', onVisibleRange
 
     chartRef.current = chart;
 
-    // Resize observer
+    // Resize observer — debounced to prevent mobile jitter from browser chrome toggling
+    let lastW = containerRef.current.clientWidth;
+    let lastH = containerRef.current.clientHeight;
+    let resizeRaf = 0;
     const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        chart.applyOptions({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        });
-      }
+      cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(() => {
+        for (const entry of entries) {
+          const w = Math.round(entry.contentRect.width);
+          const h = Math.round(entry.contentRect.height);
+          // Only update if size changed by more than 1px (prevents sub-pixel oscillation)
+          if (Math.abs(w - lastW) > 1 || Math.abs(h - lastH) > 1) {
+            lastW = w;
+            lastH = h;
+            chart.applyOptions({ width: w, height: h });
+          }
+        }
+      });
     });
     ro.observe(containerRef.current);
 
@@ -114,6 +124,7 @@ export function PriceChart({ resolution, mode, activeAsset = 'A', onVisibleRange
 
     return () => {
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(rangeHandler);
+      cancelAnimationFrame(resizeRaf);
       ro.disconnect();
       chart.remove();
       chartRef.current = null;
@@ -281,6 +292,6 @@ export function PriceChart({ resolution, mode, activeAsset = 'A', onVisibleRange
   }, [resolution, isDevMode]);
 
   return (
-    <div ref={containerRef} className="w-full h-full min-h-[300px]" />
+    <div ref={containerRef} className="w-full h-full min-h-[200px] sm:min-h-[300px]" />
   );
 }

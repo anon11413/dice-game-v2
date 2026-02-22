@@ -75,7 +75,7 @@ export function RsiPane({ resolution, visibleRange }: Props) {
   return (
     <div className="border-t border-gray-800">
       <div className="text-[10px] text-gray-500 px-2 py-0.5">RSI (14)</div>
-      <div ref={containerRef} className="w-full h-[100px]" />
+      <div ref={containerRef} className="w-full h-[70px] sm:h-[100px]" />
     </div>
   );
 }

@@ -17,36 +17,10 @@ export class ServerBridge {
   async connect(token?: string | null): Promise<void> {
     if (this.connected) return;
 
-    // 1. Fetch full price history for chart hydration
-    try {
-      const { candles } = await api.getHistory();
-      this.candles = candles.map((c: any) => ({
-        time: c.time,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-        volume: c.volume,
-      }));
-
-      // Update market store with initial data
-      const store = useMarketStore.getState();
-      store.setCandles(1, this.candles);
-
-      if (this.candles.length > 0) {
-        const last = this.candles[this.candles.length - 1];
-        store.updateTick(
-          last.close,
-          last.volume,
-          null, null,
-          0, 0, 0, 0
-        );
-      }
-    } catch (err) {
-      console.error('[ServerBridge] Failed to fetch history:', err);
-    }
-
-    // 2. Also fetch current price
+    // 1. Fetch current price via REST (chart will populate from live WebSocket ticks)
+    // NOTE: We skip /api/history because DB candles use wall-clock timestamps
+    // while live candles use engine tick counts — mixing them crashes the chart.
+    // At 25 ticks/sec the chart fills almost instantly from live data.
     try {
       const { price } = await api.getPrice();
       useMarketStore.getState().updateTick(
@@ -58,7 +32,7 @@ export class ServerBridge {
       // Will get price from WebSocket
     }
 
-    // 3. Connect WebSocket for live updates
+    // 2. Connect WebSocket for live updates
     wsClient.connect(token);
 
     this.unsubCandle = wsClient.on('CANDLE', (data: any) => {

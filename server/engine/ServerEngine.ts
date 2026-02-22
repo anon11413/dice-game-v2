@@ -1,5 +1,5 @@
 import { Engine } from '../../src/engine/Engine.js';
-import type { OHLCV, BookSnapshot } from '../../src/engine/types.js';
+import type { OHLCV, BookSnapshot, ExtendedAnalysisData, RevealData } from '../../src/engine/types.js';
 
 export interface ServerCandle {
   time: number; // Tick count (unique, increasing — used as chart x-axis)
@@ -123,6 +123,9 @@ export class ServerEngine {
     const delayedSI = state.siDelayBuffer.length > 0 ? state.siDelayBuffer[0] : state.SI_t;
     const delayedUtil = state.utilDelayBuffer.length > 0 ? state.utilDelayBuffer[0] : 0;
 
+    // Extended analysis data for Analysis V2
+    const extended = this.engine.getExtendedAnalysis();
+
     return {
       bandMeans: stats.map(s => s.mean),
       bandStds: stats.map(s => s.std),
@@ -130,6 +133,15 @@ export class ServerEngine {
       shortInterest: delayedSI,
       utilization: delayedUtil,
       bookSnapshot: book,
+      colMeans: extended.colMeans,
+      buyVolume: extended.buyVolume,
+      sellVolume: extended.sellVolume,
+      depthBySource: extended.depthBySource,
     };
+  }
+
+  /** Get reveal data (hidden engine state) for Quant Lab */
+  getRevealData(): RevealData {
+    return this.engine.getRevealData();
   }
 }

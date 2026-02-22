@@ -2,6 +2,7 @@ import { api } from '../api/client';
 import { wsClient } from '../api/wsClient';
 import { useMarketStore } from '../store/marketStore';
 import { useDiceStore } from '../store/diceStore';
+import { useAnalysisStore } from '../store/analysisStore';
 import { CandleAggregator } from '../engine/aggregation/CandleAggregator';
 import { RESOLUTIONS } from '../engine/constants';
 import type { OHLCV } from '../engine/types';
@@ -114,6 +115,20 @@ export class ServerBridge {
         data.bookSnapshot.asks.reduce((sum: number, l: any) => sum + l.totalSize, 0)
       );
       ms.setBookSnapshot(data.bookSnapshot);
+
+      // Update analysis store with extended data (Analysis V2)
+      if (data.colMeans) {
+        useAnalysisStore.getState().updateExtended({
+          colMeans: data.colMeans,
+          buyVolume: data.buyVolume ?? 0,
+          sellVolume: data.sellVolume ?? 0,
+          depthBySource: data.depthBySource ?? {},
+        });
+      }
+      // Track spread history
+      if (data.bookSnapshot.spread != null) {
+        useAnalysisStore.getState().addSpread(data.bookSnapshot.spread);
+      }
     });
 
     this.connected = true;

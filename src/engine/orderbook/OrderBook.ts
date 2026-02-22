@@ -148,6 +148,24 @@ export class OrderBook {
     return total;
   }
 
+  /** Get total depth grouped by order source × side */
+  getDepthBySource(): Record<string, { bidSize: number; askSize: number }> {
+    const result: Record<string, { bidSize: number; askSize: number }> = {};
+    for (const [id, entry] of this.orderMap) {
+      const order = entry.level.orders.find(o => o.id === id);
+      if (!order) continue;
+      if (!result[order.source]) {
+        result[order.source] = { bidSize: 0, askSize: 0 };
+      }
+      if (entry.side === 'BUY') {
+        result[order.source].bidSize += order.size;
+      } else {
+        result[order.source].askSize += order.size;
+      }
+    }
+    return result;
+  }
+
   // ---- Used by the matching engine ----
 
   /** Peek at the best ask level (for matching buys) */

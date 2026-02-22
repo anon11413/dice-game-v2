@@ -1,9 +1,11 @@
 import { Engine } from './Engine';
-import type { WorkerCommand, WorkerEvent } from '../bridge/messages';
+import type { WorkerCommand, WorkerEvent, AnalysisMode } from '../bridge/messages';
 
 let engine: Engine | null = null;
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let ticksPerSecond = 10;
+let analysisMode: AnalysisMode = 'off';
+let tickCounter = 0;
 
 function postEvent(event: WorkerEvent): void {
   // Transfer dice grid buffer when sending tick data (zero-copy)
@@ -18,6 +20,15 @@ function runTick(): void {
   if (!engine) return;
   const data = engine.tick();
   postEvent({ type: 'TICK', data });
+
+  // Send extended analysis data every 5 ticks when analysis mode is active
+  tickCounter++;
+  if (analysisMode !== 'off' && tickCounter % 5 === 0) {
+    postEvent({ type: 'EXTENDED_ANALYSIS', data: engine.getExtendedAnalysis() });
+    if (analysisMode === 'reveal') {
+      postEvent({ type: 'REVEAL_DATA', data: engine.getRevealData() });
+    }
+  }
 }
 
 function startLoop(): void {
@@ -91,9 +102,15 @@ self.onmessage = (e: MessageEvent<WorkerCommand>) => {
       break;
     }
 
+    case 'SET_ANALYSIS_MODE': {
+      analysisMode = msg.mode;
+      break;
+    }
+
     case 'RESET': {
       stopLoop();
       engine = new Engine(msg.seed, msg.config);
+      tickCounter = 0;
       postEvent({ type: 'STATUS', status: 'idle' });
       break;
     }

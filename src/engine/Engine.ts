@@ -1,6 +1,6 @@
 import type {
   SimConfig, SimState, BandStats, Order, Trade, OHLCV,
-  TickData, TickLog, BookSnapshot,
+  TickData, TickLog, BookSnapshot, ExtendedAnalysisData, RevealData,
 } from './types';
 import { DEFAULT_CONFIG, RESOLUTIONS } from './constants';
 import { PRNG } from './prng';
@@ -38,6 +38,8 @@ export class Engine {
   private candleAggregator: CandleAggregator;
   private tickStore: TickStore;
   private lastBandStats: BandStats[] = [];
+  private lastBuyVolume = 0;
+  private lastSellVolume = 0;
 
   constructor(seed: number, configOverrides?: Partial<SimConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...configOverrides };
@@ -195,12 +197,20 @@ export class Engine {
       trades.push(...matchOrder(order, this.book));
     }
 
-    // Record last trade price
+    // Record last trade price and buy/sell volume
     if (trades.length > 0) {
       this.state.P_t = trades[trades.length - 1].price;
       this.state.tickVolume = trades.reduce((sum, t) => sum + t.size, 0);
+      this.lastBuyVolume = trades
+        .filter(t => t.aggressorSide === 'BUY')
+        .reduce((sum, t) => sum + t.size, 0);
+      this.lastSellVolume = trades
+        .filter(t => t.aggressorSide === 'SELL')
+        .reduce((sum, t) => sum + t.size, 0);
     } else {
       this.state.tickVolume = 0;
+      this.lastBuyVolume = 0;
+      this.lastSellVolume = 0;
     }
 
     return trades;
@@ -303,5 +313,28 @@ export class Engine {
 
   getPrice(): number {
     return this.state.P_t;
+  }
+
+  /** Extended analysis data for Analysis V2 dashboard */
+  getExtendedAnalysis(): ExtendedAnalysisData {
+    const colMeans = this.lastBandStats.map(s => s.colMeans);
+    return {
+      colMeans,
+      buyVolume: this.lastBuyVolume,
+      sellVolume: this.lastSellVolume,
+      depthBySource: this.book.getDepthBySource(),
+    };
+  }
+
+  /** Reveal hidden engine state (for Quant Lab reveal mode) */
+  getRevealData(): RevealData {
+    return {
+      F_t: this.state.F_t,
+      kappa_t: this.state.kappa_t,
+      sentiment_t: this.state.sentiment_t,
+      regime_t: { ...this.state.regime_t },
+      squeeze_active: this.state.squeeze_active,
+      event_active: this.state.event_active ? { ...this.state.event_active } : null,
+    };
   }
 }

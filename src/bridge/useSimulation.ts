@@ -5,6 +5,8 @@ import type { SimConfig } from '../engine/types';
 import { useSimulationStore } from '../store/simulationStore';
 import { useMarketStore } from '../store/marketStore';
 import { useDiceStore } from '../store/diceStore';
+import { useAnalysisStore } from '../store/analysisStore';
+import type { AnalysisMode } from './messages';
 
 let sharedBridge: SimulationBridge | null = null;
 
@@ -81,6 +83,16 @@ export function useSimulation() {
           break;
         }
 
+        case 'EXTENDED_ANALYSIS': {
+          useAnalysisStore.getState().updateExtended(event.data);
+          break;
+        }
+
+        case 'REVEAL_DATA': {
+          useAnalysisStore.getState().updateReveal(event.data);
+          break;
+        }
+
         case 'ERROR': {
           console.error('Simulation error:', event.message);
           break;
@@ -127,6 +139,10 @@ export function useSimulation() {
     bridge.current.send({ type: 'GET_BOOK_SNAPSHOT' });
   }, []);
 
+  const setAnalysisMode = useCallback((mode: AnalysisMode) => {
+    bridge.current.send({ type: 'SET_ANALYSIS_MODE', mode });
+  }, []);
+
   const reset = useCallback((customSeed?: number, config?: Partial<SimConfig>) => {
     bridge.current.send({
       type: 'RESET',
@@ -143,6 +159,7 @@ export function useSimulation() {
     setSpeed,
     requestCandles,
     requestBookSnapshot,
+    setAnalysisMode,
     reset,
   };
 }

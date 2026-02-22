@@ -157,6 +157,28 @@ export interface TickLog {
   bandStds: number[];
 }
 
+// ---- Extended Analysis Data (Analysis V2) ----
+
+export interface DepthBySource {
+  [source: string]: { bidSize: number; askSize: number };
+}
+
+export interface ExtendedAnalysisData {
+  colMeans: number[][];           // 10 bands × 100 columns
+  buyVolume: number;
+  sellVolume: number;
+  depthBySource: DepthBySource;
+}
+
+export interface RevealData {
+  F_t: number;
+  kappa_t: number;
+  sentiment_t: number;
+  regime_t: Regime;
+  squeeze_active: boolean;
+  event_active: EventState | null;
+}
+
 // ---- Directional Band Config (Section 6.1) ----
 
 export interface DirectionalBandConfig {

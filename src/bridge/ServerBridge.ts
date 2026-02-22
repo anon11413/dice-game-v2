@@ -56,7 +56,7 @@ export class ServerBridge {
         if (resolution === RESOLUTIONS.TICK && candles.length > 0) {
           this.lastHistoryTick = candles[candles.length - 1].time;
           const last = candles[candles.length - 1];
-          store.updateTick(last.close, 0, null, null, 0, 0, 0, 0);
+          store.updateTick(last.close, 0, store.bestBid, store.bestAsk, store.shortInterest, store.utilization, 0, 0);
         }
       }
     } catch (err) {
@@ -96,7 +96,7 @@ export class ServerBridge {
         s.setCandles(res, trimmed);
       }
 
-      s.updateTick(data.price, data.volume, null, null, 0, 0, 0, 0);
+      s.updateTick(data.price, data.volume, s.bestBid, s.bestAsk, s.shortInterest, s.utilization, 0, 0);
     });
 
     // 4. Subscribe to analysis data for Analysis page

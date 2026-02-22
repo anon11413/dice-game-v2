@@ -21,27 +21,38 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // How often to persist to DB (every 390 ticks = 1 sim "day")
 const DB_PERSIST_INTERVAL = 390;
 
+// Timeout helper — prevents dead DB host from blocking startup via TCP hang
+const DB_TIMEOUT = 8000;
+function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${DB_TIMEOUT}ms`)), DB_TIMEOUT)
+    ),
+  ]);
+}
+
 async function main() {
-  // 1. Run database migrations
+  // 1. Run database migrations (with timeout to prevent dead-host TCP hang)
   try {
-    await migrate();
-  } catch (err) {
-    console.error('[Server] DB migration failed — running without database');
+    await withTimeout(migrate(), 'DB migration');
+  } catch (err: any) {
+    console.error(`[Server] DB migration failed — running without database: ${err.message}`);
     console.error('[Server] API endpoints requiring DB will fail');
   }
 
-  // 2. Load price state from DB
+  // 2. Load price state from DB (with timeout)
   let seed = 42;
   let tickCount = 0;
   try {
-    const state = await getPriceState();
+    const state = await withTimeout(getPriceState(), 'getPriceState');
     if (state) {
       seed = state.last_seed;
       tickCount = state.tick_count;
       console.log(`[Server] Resuming from seed=${seed}, tickCount=${tickCount}, price=$${parseFloat(state.last_price).toFixed(2)}`);
     }
-  } catch {
-    console.log('[Server] No price state found, starting fresh');
+  } catch (err: any) {
+    console.log(`[Server] No price state found, starting fresh: ${err.message}`);
   }
 
   // 3. Create and initialize engine

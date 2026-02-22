@@ -1,8 +1,3 @@
-databases:
-  - name: dicestock-db
-    plan: free
-    databaseName: dicestock
-
 services:
   - type: web
     name: dicestock
@@ -18,6 +13,4 @@ services:
       - key: DEV_PIN
         value: "1337"
       - key: DATABASE_URL
-        fromDatabase:
-          name: dicestock-db
-          property: connectionString
+        sync: false

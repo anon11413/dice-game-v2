@@ -7,7 +7,7 @@ import { BandTimelineChart } from './BandTimelineChart';
 
 export function AnalysisPage() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 h-full">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 h-full p-2">
       {/* Left column */}
       <div className="flex flex-col gap-3">
         <DiceGridViz />

@@ -15,6 +15,11 @@ function getBridge(): SimulationBridge {
   return sharedBridge;
 }
 
+/** Expose the shared bridge for direct access (dev mode chart updates) */
+export function getWorkerBridge(): SimulationBridge | null {
+  return sharedBridge;
+}
+
 /**
  * Main hook connecting the simulation worker to Zustand stores.
  * Throttles UI updates to ~30Hz for performance.

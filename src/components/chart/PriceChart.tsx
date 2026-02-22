@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   createChart,
   type IChartApi,
@@ -12,7 +13,6 @@ import {
 } from 'lightweight-charts';
 import { useMarketStore } from '../../store/marketStore';
 import { useIndicatorStore } from '../../store/indicatorStore';
-import { useSimulation } from '../../bridge/useSimulation';
 import type { OHLCV } from '../../engine/types';
 import { sma, ema, bollingerBands, vwap as calcVwap } from '../../engine/aggregation/indicators';
 
@@ -40,8 +40,9 @@ export function PriceChart({ resolution, mode }: Props) {
   const chartRef = useRef<IChartApi | null>(null);
   const mainSeriesRef = useRef<ISeriesApi<'Candlestick'> | ISeriesApi<'Line'> | null>(null);
   const overlaySeriesRef = useRef<Map<string, ISeriesApi<'Line'>>>(new Map());
-  const { requestCandles } = useSimulation();
   const indicators = useIndicatorStore((s) => s.enabled);
+  const location = useLocation();
+  const isDevMode = location.pathname.startsWith('/dev');
 
   // Create chart once
   useEffect(() => {
@@ -130,14 +131,20 @@ export function PriceChart({ resolution, mode }: Props) {
 
   }, [mode]);
 
-  // Request candles on resolution change
+  // Request candles on resolution change (dev mode only — player mode gets data via WebSocket)
   useEffect(() => {
-    requestCandles(resolution);
-  }, [resolution, requestCandles]);
+    if (isDevMode) {
+      // Dynamically import to avoid loading worker in player mode
+      import('../../bridge/useSimulation').then(({ getWorkerBridge }) => {
+        if (getWorkerBridge()) {
+          getWorkerBridge()!.send({ type: 'GET_CANDLES', resolution });
+        }
+      });
+    }
+  }, [resolution, isDevMode]);
 
   // Subscribe to candle data and update chart
   const candles = useMarketStore((s) => s.candles.get(resolution));
-  const price = useMarketStore((s) => s.price);
 
   const updateChart = useCallback(() => {
     const chart = chartRef.current;
@@ -201,13 +208,13 @@ export function PriceChart({ resolution, mode }: Props) {
     candles: OHLCV[],
     values: (number | null)[],
     color: string,
-    lineWidth: number = 1
+    lineWidth: 1 | 2 | 3 | 4 = 1
   ) => {
     let series = overlaySeriesRef.current.get(key);
     if (!series) {
       series = chart.addSeries(LineSeries, {
         color,
-        lineWidth,
+        lineWidth: lineWidth as 1 | 2 | 3 | 4,
         priceLineVisible: false,
         lastValueVisible: false,
         crosshairMarkerVisible: false,
@@ -229,13 +236,19 @@ export function PriceChart({ resolution, mode }: Props) {
     updateChart();
   }, [updateChart]);
 
-  // Request candles periodically for live updates
+  // Request candles periodically for live updates (dev mode only)
   useEffect(() => {
+    if (!isDevMode) return;
+
     const interval = setInterval(() => {
-      requestCandles(resolution);
+      import('../../bridge/useSimulation').then(({ getWorkerBridge }) => {
+        if (getWorkerBridge()) {
+          getWorkerBridge()!.send({ type: 'GET_CANDLES', resolution });
+        }
+      });
     }, 500);
     return () => clearInterval(interval);
-  }, [resolution, requestCandles]);
+  }, [resolution, isDevMode]);
 
   return (
     <div ref={containerRef} className="w-full h-full min-h-[300px]" />

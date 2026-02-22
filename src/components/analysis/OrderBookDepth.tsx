@@ -1,21 +1,31 @@
 import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useMarketStore } from '../../store/marketStore';
-import { useSimulation } from '../../bridge/useSimulation';
 
 /**
  * Classic depth chart: bids (green, cumulative) on left, asks (red, cumulative) on right.
  * Rendered with Canvas for performance.
+ * In dev mode, periodically requests book snapshots from the worker.
+ * In player mode, shows whatever data is available (may be empty).
  */
 export function OrderBookDepth() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bookSnapshot = useMarketStore((s) => s.bookSnapshot);
-  const { requestBookSnapshot } = useSimulation();
+  const location = useLocation();
+  const isDevMode = location.pathname.startsWith('/dev');
 
-  // Request book data periodically
+  // Request book data periodically (dev mode only)
   useEffect(() => {
-    const interval = setInterval(() => requestBookSnapshot(), 500);
+    if (!isDevMode) return;
+    const interval = setInterval(() => {
+      import('../../bridge/useSimulation').then(({ getWorkerBridge }) => {
+        if (getWorkerBridge()) {
+          getWorkerBridge()!.send({ type: 'GET_BOOK_SNAPSHOT' });
+        }
+      });
+    }, 500);
     return () => clearInterval(interval);
-  }, [requestBookSnapshot]);
+  }, [isDevMode]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

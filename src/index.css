@@ -32,3 +32,12 @@ body {
 ::-webkit-scrollbar-track { background: #0d1117; }
 ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+/* Hide scrollbar for tab bars */
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Mobile-friendly touch targets */
+@media (pointer: coarse) {
+  input, select, button { min-height: 44px; }
+}

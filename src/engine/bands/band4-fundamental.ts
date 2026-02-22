@@ -48,7 +48,7 @@ export function generateValueOrders(
 
     if (gapPct > 0 && agentBias < 10) {
       // Price above fundamental AND agent dice lean bearish → SELL limit
-      const size = Math.max(1, Math.floor(15 + (10 - agentBias) * 5 * state.kappa_t));
+      const size = Math.max(1, Math.floor(20 + (10 - agentBias) * 8 * state.kappa_t));
       const limitPrice = roundToTick(
         state.P_t + prng.uniform(0.01, 0.05 * state.kappa_t * state.P_t),
         config.TICK_SIZE
@@ -56,7 +56,7 @@ export function generateValueOrders(
       orders.push(createOrder('SELL', 'LIMIT', limitPrice, size, 'VALUE'));
     } else if (gapPct < 0 && agentBias > 11) {
       // Price below fundamental AND agent dice lean bullish → BUY limit
-      const size = Math.max(1, Math.floor(15 + (agentBias - 11) * 5 * state.kappa_t));
+      const size = Math.max(1, Math.floor(20 + (agentBias - 11) * 8 * state.kappa_t));
       const limitPrice = roundToTick(
         state.P_t - prng.uniform(0.01, 0.05 * state.kappa_t * state.P_t),
         config.TICK_SIZE

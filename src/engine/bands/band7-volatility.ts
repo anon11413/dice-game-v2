@@ -34,8 +34,8 @@ export function updateKappa(state: SimState, stats: BandStats): void {
     kappaRaw *= 1.0 + (colStd - 2.5) * 0.2;
   }
 
-  // Smooth — 0.70/0.30 allows faster regime transitions (half-life ≈ 2 ticks)
-  state.kappa_t = 0.70 * state.kappa_t + 0.30 * kappaRaw;
+  // Smooth — 0.85/0.15 creates sticky regimes (half-life ≈ 5 ticks)
+  state.kappa_t = 0.85 * state.kappa_t + 0.15 * kappaRaw;
 
   // Clamp
   state.kappa_t = clamp(state.kappa_t, 0.2, 5.0);

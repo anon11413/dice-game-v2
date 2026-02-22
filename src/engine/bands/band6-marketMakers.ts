@@ -27,11 +27,11 @@ export function generateMarketMakerOrders(
   let halfSpread = state.P_t * baseSpreadPct * spreadFactor;
   halfSpread = Math.max(halfSpread, config.TICK_SIZE);
 
-  // Depth (shares at each level) — tuned so directional agents can move price
-  const baseDepth = 150;
+  // Depth (shares at each level)
+  const baseDepth = 500;
   const depthFactor = mmMean / 10.5;
   let depth = Math.floor(baseDepth * depthFactor / state.kappa_t);
-  depth = Math.max(depth, 5);
+  depth = Math.max(depth, 10);
 
   let numLevels = 20;
 

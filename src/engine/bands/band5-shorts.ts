@@ -21,9 +21,9 @@ export function generateShortOrders(
   for (let j = 0; j < 100; j++) {
     const cm = stats.colMeans[j];
 
-    if (cm >= 12 && utilization < 1.2) {
+    if (cm >= 14 && utilization < 1.2) {
       // Open new short position → SELL
-      const aggression = (cm - 11) / 9.0;
+      const aggression = (cm - 13) / 7.0;
       const size = Math.max(1, Math.floor(30 * aggression * state.kappa_t));
 
       // Borrow cost discourages at high utilization
@@ -39,9 +39,9 @@ export function generateShortOrders(
         }
         state.SI_t += size;
       }
-    } else if (cm <= 9) {
+    } else if (cm <= 7) {
       // Voluntarily cover shorts → BUY
-      const coverUrgency = (10 - cm) / 9.0;
+      const coverUrgency = (8 - cm) / 7.0;
       let size = Math.max(1, Math.floor(20 * coverUrgency * state.kappa_t));
       size = Math.min(size, state.SI_t); // Can't cover more than exists
 

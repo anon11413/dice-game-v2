@@ -1,0 +1,26 @@
+import type { SimConfig, TickData, OHLCV, BookSnapshot } from '../engine/types';
+
+// ============================================================
+// Worker <-> UI Message Types
+// ============================================================
+
+/** Commands sent FROM the UI TO the Worker */
+export type WorkerCommand =
+  | { type: 'START'; seed: number; config?: Partial<SimConfig> }
+  | { type: 'PAUSE' }
+  | { type: 'RESUME' }
+  | { type: 'STEP'; count: number }
+  | { type: 'SET_SPEED'; ticksPerSecond: number }
+  | { type: 'GET_CANDLES'; resolution: number; from?: number; to?: number }
+  | { type: 'GET_BOOK_SNAPSHOT' }
+  | { type: 'RESET'; seed: number; config?: Partial<SimConfig> };
+
+/** Events sent FROM the Worker TO the UI */
+export type WorkerEvent =
+  | { type: 'TICK'; data: TickData }
+  | { type: 'CANDLES'; resolution: number; data: OHLCV[] }
+  | { type: 'BOOK_SNAPSHOT'; data: BookSnapshot }
+  | { type: 'STATUS'; status: SimStatus }
+  | { type: 'ERROR'; message: string };
+
+export type SimStatus = 'idle' | 'running' | 'paused';

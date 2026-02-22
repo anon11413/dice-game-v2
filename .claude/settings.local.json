@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(npm create:*)",
+      "Bash(npx --yes create-vite@latest temp-scaffold --template react-ts)",
+      "Bash(npm install)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite build:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

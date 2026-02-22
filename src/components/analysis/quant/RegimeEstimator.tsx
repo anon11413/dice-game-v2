@@ -2,6 +2,8 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import { useDiceStore } from '../../../store/diceStore';
 import { useAnalysisStore } from '../../../store/analysisStore';
 
+// Engine uses colMeans[25] for regime — we use that when available, else fall back to band mean
+
 /** Estimate trendPersistence from band10 (index 9) mean */
 function estimateTrendPersistence(mean: number): number {
   if (mean >= 14) return 0.5 + ((mean - 14) / 6) * 0.4;
@@ -108,8 +110,11 @@ export function RegimeEstimator() {
   const bandMeansHistory = useDiceStore((s) => s.bandMeansHistory);
   const revealEnabled = useAnalysisStore((s) => s.revealEnabled);
   const revealData = useAnalysisStore((s) => s.revealData);
+  const latestColMeans = useAnalysisStore((s) => s.latestColMeans);
 
-  const estimatedTP = estimateTrendPersistence(bandMeans[9]);
+  // Engine uses colMeans[25] of band 10 (index 9) for regime — use that when available
+  const regimeSignal = latestColMeans ? latestColMeans[9][25] : bandMeans[9];
+  const estimatedTP = estimateTrendPersistence(regimeSignal);
   const estimatedRP = estimateReversalProb(bandStds[9]);
   const regimeLabel = getRegimeLabel(estimatedTP);
   const regimeColor = getRegimeLabelColor(estimatedTP);

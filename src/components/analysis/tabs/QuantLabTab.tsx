@@ -10,6 +10,7 @@ import { LiquidityDepthMap } from '../quant/LiquidityDepthMap';
 import { ReturnDistribution } from '../quant/ReturnDistribution';
 import { SignalDashboard } from '../quant/SignalDashboard';
 import { OrderSourceBreakdown } from '../quant/OrderSourceBreakdown';
+import { Band8ExtremesHeatmap } from '../quant/Band8ExtremesHeatmap';
 
 export function QuantLabTab() {
   return (
@@ -47,14 +48,10 @@ export function QuantLabTab() {
         <SignalDashboard />
       </div>
 
-      {/* Row 5: Band 8 Extremes placeholder + Order Source Breakdown */}
+      {/* Row 5: Band 8 Extremes (2 cols) + Order Source Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-        <div className="bg-[#0d1117] rounded-lg p-3 border border-gray-800 flex items-center justify-center min-h-[120px]">
-          <div className="text-center">
-            <span className="text-sm text-gray-500">Band 8 Extremes</span>
-            <br />
-            <span className="text-xs text-gray-600">Coming Soon</span>
-          </div>
+        <div className="xl:col-span-2">
+          <Band8ExtremesHeatmap />
         </div>
         <OrderSourceBreakdown />
       </div>

@@ -4,9 +4,14 @@ import { clamp } from '../../utils/math';
 /**
  * Band 10: Meta-Regime — Trend vs Chop (Section 11)
  * Controls whether the market trends or mean-reverts.
+ *
+ * Uses a single column mean (10 dice, σ ≈ 1.83) instead of the full band
+ * mean (1000 dice, σ ≈ 0.183) so the signal has enough variance to
+ * actually reach trending/choppy regimes.
  */
 export function updateRegime(state: SimState, stats: BandStats): void {
-  const rMean = stats.mean;
+  // Column mean of 10 dice — σ ≈ 1.83 (column 25, independent from kappa/sentiment columns)
+  const rMean = stats.colMeans[25];
   const rStd = stats.std;
 
   // Trend persistence: probability that an agent continues the prior tick's direction

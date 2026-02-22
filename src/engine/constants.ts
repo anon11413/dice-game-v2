@@ -14,7 +14,7 @@ export const DEFAULT_CONFIG: SimConfig = {
   BOOK_DEPTH_INIT: 50,
   TICK_SIZE: 0.01,
   MAX_ORDER_LIFETIME: 100,
-  F_DRIFT_RATE: 0.002,
+  F_DRIFT_RATE: 0.01,
   SQUEEZE_UTIL_THRESH: 0.45,
   SQUEEZE_PRICE_THRESH: 0.03,
   SQUEEZE_WINDOW: 20,
@@ -29,7 +29,7 @@ export const DEFAULT_CONFIG: SimConfig = {
 /** Band parameter tables (Section 6.1) */
 export const BAND1_CONFIG: DirectionalBandConfig = {
   activeEveryN: 1,
-  baseOrderSize: 10,
+  baseOrderSize: 40,
   marketOrderProb: 0.6,
   limitOffsetMin: 0.001,
   limitOffsetMax: 0.005,
@@ -39,7 +39,7 @@ export const BAND1_CONFIG: DirectionalBandConfig = {
 
 export const BAND2_CONFIG: DirectionalBandConfig = {
   activeEveryN: 13,
-  baseOrderSize: 80,
+  baseOrderSize: 250,
   marketOrderProb: 0.35,
   limitOffsetMin: 0.005,
   limitOffsetMax: 0.02,
@@ -49,7 +49,7 @@ export const BAND2_CONFIG: DirectionalBandConfig = {
 
 export const BAND3_CONFIG: DirectionalBandConfig = {
   activeEveryN: 65,
-  baseOrderSize: 400,
+  baseOrderSize: 1000,
   marketOrderProb: 0.2,
   limitOffsetMin: 0.01,
   limitOffsetMax: 0.05,

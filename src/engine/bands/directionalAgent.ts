@@ -21,11 +21,11 @@ export function generateDirectionalOrders(
   for (let j = 0; j < 100; j++) {
     const cm = stats.colMeans[j]; // Agent's dice mean
 
-    // Step 1: Raw directional signal
+    // Step 1: Raw directional signal (narrower neutral zone for more active agents)
     let rawDir: number;
-    if (cm >= 14) {
+    if (cm >= 12) {
       rawDir = 1;   // bullish
-    } else if (cm <= 7) {
+    } else if (cm <= 9) {
       rawDir = -1;  // bearish
     } else {
       continue;     // neutral → this agent sits out

@@ -111,6 +111,60 @@ export class Engine {
     return toPlayerVisible(this.state, bandStats, bookSnapshot, diceGrid);
   }
 
+  /**
+   * Lean replay tick — same PRNG-deterministic logic as tick() but skips
+   * expensive output construction (grid copy, book snapshot, TickData).
+   * Reuses the DiceGrid buffer to avoid 10KB allocation per tick.
+   * Keeps candle aggregation so chart history is preserved after replay.
+   */
+  replayTick(): void {
+    // 1. Roll dice — reuse buffer (no allocation)
+    this.grid.rollReuse(this.prng);
+    this.state.dice = this.grid.getRawGrid();
+
+    // 2. Compute band statistics (needed for order generation counts)
+    const bandStats = computeAllBandStats(this.state.dice);
+    this.lastBandStats = bandStats;
+
+    // 3A–3C identical to tick() — PRNG-deterministic
+    this.phaseA(bandStats);
+    const newOrders = this.phaseB(bandStats);
+    const trades = this.phaseC(newOrders);
+
+    // 3D — simplified: keep candles + SI buffers + squeeze, skip history arrays
+    // SI delay buffers (affect future ticks)
+    this.state.siDelayBuffer.push(this.state.SI_t);
+    this.state.utilDelayBuffer.push(this.state.SI_t / this.config.FLOAT);
+    if (this.state.siDelayBuffer.length > 5) this.state.siDelayBuffer.shift();
+    if (this.state.utilDelayBuffer.length > 5) this.state.utilDelayBuffer.shift();
+
+    // Squeeze cooldown/termination (affects future ticks)
+    if (this.state.squeeze_cooldown_remaining > 0) {
+      this.state.squeeze_cooldown_remaining--;
+    }
+    if (this.state.squeeze_active) {
+      this.state.squeeze_tick_counter++;
+      if (this.state.squeeze_tick_counter > 40 || this.state.SI_t / this.config.FLOAT < 0.20) {
+        this.state.squeeze_active = false;
+        this.state.squeeze_tick_counter = 0;
+      }
+    }
+
+    // Candle aggregation (preserves chart history)
+    this.candleAggregator.addTick(this.state.tickCount, this.state.P_t, this.state.tickVolume);
+
+    // Tick counter
+    this.state.tickCount++;
+  }
+
+  /** Backfill price/volume history after replay (last N ticks from candle data) */
+  backfillHistory(): void {
+    const candles = this.candleAggregator.getCandlesWithCurrent(1); // 1-tick resolution
+    const start = Math.max(0, candles.length - 1000);
+    this.state.priceHistory = candles.slice(start).map(c => c.close);
+    this.state.volumeHistory = candles.slice(start).map(c => c.volume);
+  }
+
   // ---- Phase Implementations ----
 
   private phaseA(stats: BandStats[]): void {

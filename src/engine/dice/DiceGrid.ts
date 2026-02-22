@@ -24,6 +24,13 @@ export class DiceGrid {
     }
   }
 
+  /** Roll dice reusing existing buffer (no allocation — faster for replay) */
+  rollReuse(prng: PRNG): void {
+    for (let i = 0; i < this.grid.length; i++) {
+      this.grid[i] = prng.nextInt(1, 20);
+    }
+  }
+
   /** Get value at (row, col) */
   getCell(row: number, col: number): number {
     return this.grid[row * this.cols + col];

@@ -22,7 +22,47 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PERSIST_INTERVAL = 390;
 
 async function main() {
-  // 1. Run database migrations
+  // ── 1. Listen IMMEDIATELY so Render health probes pass ──
+  let engineReady = false;
+  let engine: ServerEngine | null = null;
+
+  const app = express();
+  const httpServer = createServer(app);
+
+  app.use(cors());
+  app.use(express.json());
+
+  // Health check — responds instantly even during engine replay
+  app.get('/api/health', (_req, res) => {
+    if (!engineReady || !engine) {
+      return res.json({ status: 'starting', uptime: process.uptime() });
+    }
+    res.json({
+      status: 'ok',
+      price: engine.getPrice(),
+      tickCount: engine.getTickCount(),
+      uptime: process.uptime(),
+    });
+  });
+
+  // Serve static files in production (SPA loads while engine warms up)
+  if (config.isProduction) {
+    const distPath = path.join(__dirname, '..', 'dist');
+    app.use(express.static(distPath));
+    // Express 5 requires named wildcard (path-to-regexp v8)
+    app.get('/{*path}', (_req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
+
+  // Initialize WebSocket
+  initWebSocket(httpServer);
+
+  httpServer.listen(config.port, () => {
+    console.log(`[Server] Listening on port ${config.port} (engine starting...)`);
+  });
+
+  // ── 2. DB migrations + load state ──
   try {
     await migrate();
   } catch (err) {
@@ -30,7 +70,6 @@ async function main() {
     console.error('[Server] API endpoints requiring DB will fail');
   }
 
-  // 2. Load price state from DB
   let seed = 42;
   let tickCount = 0;
   try {
@@ -44,10 +83,10 @@ async function main() {
     console.log('[Server] No price state found, starting fresh');
   }
 
-  // 3. Create and initialize engine
-  const engine = new ServerEngine(seed);
+  // ── 3. Create engine + async replay (yields to event loop) ──
+  engine = new ServerEngine(seed);
   if (tickCount > 0) {
-    engine.replayToTick(tickCount);
+    await engine.replayToTick(tickCount);
   }
 
   // Wire up current price accessor for trade execution
@@ -56,43 +95,13 @@ async function main() {
   // Wire up candle accessor for history endpoint (serves from engine memory)
   setGetCandles((resolution) => engine.getCandles(resolution));
 
-  // 4. Set up Express
-  const app = express();
-  const httpServer = createServer(app);
-
-  app.use(cors());
-  app.use(express.json());
-
-  // API routes
+  // ── 4. API routes (registered after engine is ready) ──
   app.use('/api', authRoutes);
   app.use('/api', pricesRoutes);
   app.use('/api', tradingRoutes);
   app.use('/api', userRoutes);
 
-  // Health check
-  app.get('/api/health', (_req, res) => {
-    res.json({
-      status: 'ok',
-      price: engine.getPrice(),
-      tickCount: engine.getTickCount(),
-      uptime: process.uptime(),
-    });
-  });
-
-  // Serve static files in production
-  if (config.isProduction) {
-    const distPath = path.join(__dirname, '..', 'dist');
-    app.use(express.static(distPath));
-    // Express 5 requires named wildcard (path-to-regexp v8)
-    app.get('/{*path}', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
-
-  // 5. Initialize WebSocket
-  initWebSocket(httpServer);
-
-  // 6. Start engine loop — 25 ticks/sec, DB persistence every 390 ticks
+  // ── 5. Start engine loop — 25 ticks/sec ──
   let ticksSinceLastPersist = 0;
   let dbWriteInProgress = false;
 
@@ -113,7 +122,7 @@ async function main() {
 
     // Broadcast analysis data at ~5Hz (every 5 ticks) for Analysis page
     if (currentTickCount % 5 === 0) {
-      broadcastAnalysis(engine.getAnalysisData());
+      broadcastAnalysis(engine!.getAnalysisData());
     }
 
     // Accumulate aggregate candle for DB
@@ -168,18 +177,15 @@ async function main() {
     }
   });
 
-  // 7. Start listening
-  httpServer.listen(config.port, () => {
-    console.log(`[Server] DiceStock running on port ${config.port}`);
-    console.log(`[Server] Engine price: $${engine.getPrice().toFixed(2)}`);
-  });
+  engineReady = true;
+  console.log(`[Server] Engine ready — price: $${engine.getPrice().toFixed(2)}`);
 
   // Graceful shutdown
   const shutdown = async () => {
     console.log('[Server] Shutting down...');
-    engine.stop();
+    engine!.stop();
     try {
-      await updatePriceState(engine.getPrice(), seed, engine.getTickCount());
+      await updatePriceState(engine!.getPrice(), seed, engine!.getTickCount());
       console.log('[Server] Final state saved');
     } catch {}
     await pool.end();

@@ -32,16 +32,35 @@ export class ServerEngine {
 
   /**
    * Fast-forward the engine to a specific tick count.
-   * Because the PRNG is deterministic, replaying N ticks from the same seed
-   * produces the exact same state.
+   * Uses replayTick() for speed (no allocations, no TickData construction).
+   * Yields to the event loop every CHUNK ticks so health checks keep responding.
+   * Backfills price/volume history arrays after replay finishes.
    */
-  replayToTick(targetTickCount: number): void {
+  async replayToTick(targetTickCount: number): Promise<void> {
+    const CHUNK = 5000;
     const startTime = Date.now();
-    for (let i = 0; i < targetTickCount; i++) {
-      this.engine.tick();
+
+    for (let i = 0; i < targetTickCount; i += CHUNK) {
+      const end = Math.min(i + CHUNK, targetTickCount);
+      for (let j = i; j < end; j++) {
+        this.engine.replayTick();
+      }
+      // Log progress for large replays
+      if (targetTickCount > CHUNK) {
+        const pct = Math.round((end / targetTickCount) * 100);
+        console.log(`[Engine] Replaying... ${end}/${targetTickCount} (${pct}%)`);
+      }
+      // Yield to event loop so health checks can respond
+      if (end < targetTickCount) {
+        await new Promise<void>(r => setTimeout(r, 0));
+      }
     }
+
+    // Backfill history arrays (needed for live operation after replay)
+    this.engine.backfillHistory();
+
     const elapsed = Date.now() - startTime;
-    console.log(`[Engine] Replayed ${targetTickCount} ticks in ${elapsed}ms`);
+    console.log(`[Engine] Replayed ${targetTickCount} ticks in ${elapsed}ms (price: $${this.engine.getPrice().toFixed(2)})`);
   }
 
   /**

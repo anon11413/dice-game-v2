@@ -1,4 +1,5 @@
 import { Engine } from '../../src/engine/Engine.js';
+import type { OHLCV } from '../../src/engine/types.js';
 
 export interface ServerCandle {
   time: number; // Tick count (unique, increasing — used as chart x-axis)
@@ -97,5 +98,10 @@ export class ServerEngine {
 
   getSeed(): number {
     return this.seed;
+  }
+
+  /** Get candles at any resolution from the engine's CandleAggregator */
+  getCandles(resolution: number): OHLCV[] {
+    return this.engine.getCandles(resolution);
   }
 }

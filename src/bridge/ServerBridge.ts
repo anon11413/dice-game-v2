@@ -1,65 +1,99 @@
 import { api } from '../api/client';
 import { wsClient } from '../api/wsClient';
 import { useMarketStore } from '../store/marketStore';
+import { CandleAggregator } from '../engine/aggregation/CandleAggregator';
+import { RESOLUTIONS } from '../engine/constants';
 import type { OHLCV } from '../engine/types';
 
 const MAX_CANDLES = 5000;
 
+/** All resolutions exposed in the chart UI */
+const PLAYER_RESOLUTIONS = [
+  RESOLUTIONS.TICK,    // 1
+  RESOLUTIONS.HOURLY,  // 13
+  RESOLUTIONS.DAILY,   // 65
+  RESOLUTIONS.WEEKLY,  // 325
+];
+
 /**
  * ServerBridge connects to the backend REST API and WebSocket
  * to receive live price data (replacing the Web Worker for player mode).
+ *
+ * On connect it fetches history at all resolutions from the server,
+ * then aggregates live ticks client-side using CandleAggregator.
  */
 export class ServerBridge {
-  private candles: OHLCV[] = [];
   private unsubCandle: (() => void) | null = null;
   private connected = false;
+  private aggregator: CandleAggregator | null = null;
+  private historyCandles: Map<number, OHLCV[]> = new Map();
+  private lastHistoryTick = 0;
 
   async connect(token?: string | null): Promise<void> {
     if (this.connected) return;
 
-    // 1. Fetch current price via REST (chart will populate from live WebSocket ticks)
-    // NOTE: We skip /api/history because DB candles use wall-clock timestamps
-    // while live candles use engine tick counts — mixing them crashes the chart.
-    // At 25 ticks/sec the chart fills almost instantly from live data.
+    const store = useMarketStore.getState();
+
+    // 1. Fetch history for ALL resolutions in parallel from engine memory
     try {
-      const { price } = await api.getPrice();
-      useMarketStore.getState().updateTick(
-        price, 0,
-        null, null,
-        0, 0, 0, 0
+      const results = await Promise.all(
+        PLAYER_RESOLUTIONS.map((res) =>
+          api
+            .getHistory(MAX_CANDLES, res)
+            .then((data) => ({ resolution: res, candles: data.candles as OHLCV[] }))
+            .catch(() => ({ resolution: res, candles: [] as OHLCV[] }))
+        )
       );
-    } catch {
-      // Will get price from WebSocket
+
+      for (const { resolution, candles } of results) {
+        this.historyCandles.set(resolution, candles);
+        store.setCandles(resolution, candles);
+
+        // Track the last tick from 1T history (most granular)
+        if (resolution === RESOLUTIONS.TICK && candles.length > 0) {
+          this.lastHistoryTick = candles[candles.length - 1].time;
+          const last = candles[candles.length - 1];
+          store.updateTick(last.close, 0, null, null, 0, 0, 0, 0);
+        }
+      }
+    } catch (err) {
+      console.error('[ServerBridge] Failed to fetch history:', err);
     }
 
-    // 2. Connect WebSocket for live updates
+    // 2. Create aggregator for live ticks (all resolutions)
+    this.aggregator = new CandleAggregator(PLAYER_RESOLUTIONS);
+
+    // 3. Connect WebSocket for live updates
     wsClient.connect(token);
 
     this.unsubCandle = wsClient.on('CANDLE', (data: any) => {
-      const candle: OHLCV = {
-        time: data.time,
-        open: data.open,
-        high: data.high,
-        low: data.low,
-        close: data.close,
-        volume: data.volume,
-      };
+      const tick = data.time;
 
-      this.candles.push(candle);
+      // Skip ticks already covered by history
+      if (tick <= this.lastHistoryTick) return;
 
-      // Trim to prevent memory leak
-      if (this.candles.length > MAX_CANDLES) {
-        this.candles = this.candles.slice(-MAX_CANDLES);
+      // Feed tick to aggregator for multi-resolution candle building
+      if (this.aggregator) {
+        this.aggregator.addTick(tick, data.close, data.volume);
       }
 
-      const store = useMarketStore.getState();
-      store.setCandles(1, [...this.candles]);
-      store.updateTick(
-        data.price,
-        candle.volume,
-        null, null,
-        0, 0, 0, 0
-      );
+      // Merge history + live for all resolutions and update store
+      const s = useMarketStore.getState();
+      for (const res of PLAYER_RESOLUTIONS) {
+        const history = this.historyCandles.get(res) || [];
+        const live = this.aggregator
+          ? this.aggregator.getCandlesWithCurrent(res)
+          : [];
+        const merged = [...history, ...live];
+
+        // Trim to prevent unbounded memory growth
+        const trimmed =
+          merged.length > MAX_CANDLES ? merged.slice(-MAX_CANDLES) : merged;
+
+        s.setCandles(res, trimmed);
+      }
+
+      s.updateTick(data.price, data.volume, null, null, 0, 0, 0, 0);
     });
 
     this.connected = true;
@@ -72,13 +106,11 @@ export class ServerBridge {
       this.unsubCandle = null;
     }
     wsClient.disconnect();
-    this.candles = [];
+    this.historyCandles.clear();
+    this.aggregator = null;
+    this.lastHistoryTick = 0;
     this.connected = false;
     console.log('[ServerBridge] Disconnected');
-  }
-
-  getCandles(): OHLCV[] {
-    return this.candles;
   }
 
   isConnected(): boolean {

@@ -12,7 +12,7 @@ import { ServerEngine } from './engine/ServerEngine.js';
 import { initWebSocket, broadcastCandle, setCurrentPriceForWS } from './ws/broadcast.js';
 
 import authRoutes from './routes/auth.js';
-import pricesRoutes, { setCurrentPrice } from './routes/prices.js';
+import pricesRoutes, { setCurrentPrice, setGetCandles } from './routes/prices.js';
 import tradingRoutes, { setGetCurrentPrice } from './routes/trading.js';
 import userRoutes from './routes/user.js';
 
@@ -53,6 +53,8 @@ async function main() {
   // Wire up current price accessor for trade execution
   setCurrentPrice(engine.getPrice());
   setGetCurrentPrice(() => engine.getPrice());
+  // Wire up candle accessor for history endpoint (serves from engine memory)
+  setGetCandles((resolution) => engine.getCandles(resolution));
 
   // 4. Set up Express
   const app = express();

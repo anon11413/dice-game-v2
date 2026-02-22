@@ -37,9 +37,12 @@ class ApiClient {
   }
 
   // Data
-  getHistory(limit?: number) {
-    const query = limit ? `?limit=${limit}` : '';
-    return this.request<{ candles: any[] }>(`/history${query}`);
+  getHistory(limit?: number, resolution?: number) {
+    const params = new URLSearchParams();
+    if (limit) params.set('limit', String(limit));
+    if (resolution) params.set('resolution', String(resolution));
+    const query = params.toString();
+    return this.request<{ candles: any[] }>(`/history${query ? `?${query}` : ''}`);
   }
 
   getPrice() {

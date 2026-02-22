@@ -9,15 +9,20 @@ export interface ServerCandle {
   volume: number;
 }
 
-export type CandleCallback = (candle: ServerCandle, currentPrice: number, tickCount: number) => void;
+export type TickCallback = (
+  candle: ServerCandle,
+  currentPrice: number,
+  tickCount: number
+) => void;
 
-const TICKS_PER_MINUTE = 390;
+const TICKS_PER_SECOND = 25;
+const TICK_INTERVAL_MS = Math.floor(1000 / TICKS_PER_SECOND); // 40ms
 
 export class ServerEngine {
   private engine: Engine;
-  private intervalId: ReturnType<typeof setTimeout> | null = null;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
   private seed: number;
-  private candleCount = 0;
+  private ticksSinceStart = 0;
 
   constructor(seed: number) {
     this.seed = seed;
@@ -39,66 +44,44 @@ export class ServerEngine {
   }
 
   /**
-   * Start the engine loop. Runs 390 ticks every 60 seconds.
+   * Start the engine loop. Runs individual ticks at 25 ticks/second.
+   * Each tick produces a 1-tick candle and invokes the callback.
    */
-  start(onCandle: CandleCallback): void {
+  start(onTick: TickCallback): void {
     if (this.intervalId) return;
 
-    // Run first candle immediately
-    this.runMinute(onCandle);
+    const runOneTick = () => {
+      const td = this.engine.tick();
+      this.ticksSinceStart++;
 
-    // Self-correcting timer to avoid drift
-    const INTERVAL_MS = 60_000;
-    let nextRun = Date.now() + INTERVAL_MS;
+      const price = td.price;
+      const volume = td.volume;
 
-    const tick = () => {
-      this.runMinute(onCandle);
-      nextRun += INTERVAL_MS;
-      const delay = Math.max(0, nextRun - Date.now());
-      this.intervalId = setTimeout(tick, delay);
+      // Each tick is its own candle (RESOLUTIONS.TICK = 1)
+      const time = Math.floor(Date.now() / 1000);
+      const candle: ServerCandle = {
+        time,
+        open: price,
+        high: price,
+        low: price,
+        close: price,
+        volume,
+      };
+
+      onTick(candle, price, this.engine.getTickCount());
     };
 
-    this.intervalId = setTimeout(tick, INTERVAL_MS);
-    console.log('[Engine] Started — producing candles every 60s');
-  }
+    // Run first tick immediately
+    runOneTick();
 
-  private runMinute(onCandle: CandleCallback): void {
-    const firstTick = this.engine.tick();
-    let open = firstTick.price;
-    let high = open;
-    let low = open;
-    let close = open;
-    let volume = firstTick.volume;
-
-    for (let i = 1; i < TICKS_PER_MINUTE; i++) {
-      const td = this.engine.tick();
-      close = td.price;
-      if (close > high) high = close;
-      if (close < low) low = close;
-      volume += td.volume;
-    }
-
-    this.candleCount++;
-
-    // Use Unix timestamp in seconds for lightweight-charts UTCTimestamp
-    const time = Math.floor(Date.now() / 1000);
-
-    const candle: ServerCandle = { time, open, high, low, close, volume };
-    onCandle(candle, close, this.engine.getTickCount());
-
-    // Log memory usage every 100 candles
-    if (this.candleCount % 100 === 0) {
-      const mem = process.memoryUsage();
-      console.log(
-        `[Engine] Candle #${this.candleCount} | Price: $${close.toFixed(2)} | ` +
-        `Heap: ${(mem.heapUsed / 1024 / 1024).toFixed(1)}MB`
-      );
-    }
+    // Then tick at 25/sec
+    this.intervalId = setInterval(runOneTick, TICK_INTERVAL_MS);
+    console.log(`[Engine] Started — ${TICKS_PER_SECOND} ticks/sec (${TICK_INTERVAL_MS}ms interval)`);
   }
 
   stop(): void {
     if (this.intervalId) {
-      clearTimeout(this.intervalId);
+      clearInterval(this.intervalId);
       this.intervalId = null;
       console.log('[Engine] Stopped');
     }

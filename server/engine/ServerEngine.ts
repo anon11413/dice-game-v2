@@ -1,4 +1,5 @@
 import { Engine } from '../../src/engine/Engine.js';
+import { config } from '../config.js';
 import type { OHLCV, BookSnapshot, ExtendedAnalysisData, RevealData } from '../../src/engine/types.js';
 
 export interface ServerCandle {
@@ -16,8 +17,10 @@ export type TickCallback = (
   tickCount: number
 ) => void;
 
-const TICKS_PER_SECOND = 25;
-const TICK_INTERVAL_MS = Math.floor(1000 / TICKS_PER_SECOND); // 40ms
+const FULL_TPS = 25;
+const speedPct = Math.max(1, Math.min(100, config.engineSpeedPct));
+const TICKS_PER_SECOND = Math.max(1, Math.round(FULL_TPS * speedPct / 100));
+const TICK_INTERVAL_MS = Math.floor(1000 / TICKS_PER_SECOND);
 
 export class ServerEngine {
   private engine: Engine;
@@ -77,7 +80,7 @@ export class ServerEngine {
 
     // Then tick at 25/sec
     this.intervalId = setInterval(runOneTick, TICK_INTERVAL_MS);
-    console.log(`[Engine] Started — ${TICKS_PER_SECOND} ticks/sec (${TICK_INTERVAL_MS}ms interval)`);
+    console.log(`[Engine] Started — ${TICKS_PER_SECOND} ticks/sec (${TICK_INTERVAL_MS}ms interval) [${speedPct}% speed]`);
   }
 
   stop(): void {

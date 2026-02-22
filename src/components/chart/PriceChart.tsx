@@ -60,6 +60,10 @@ export function PriceChart({ resolution, mode, activeAsset = 'A', onVisibleRange
   const location = useLocation();
   const isDevMode = location.pathname.startsWith('/dev');
 
+  // Ref to avoid stale closure in chart setup useEffect
+  const onRangeChangeRef = useRef(onVisibleRangeChange);
+  onRangeChangeRef.current = onVisibleRangeChange;
+
   // Create chart once
   useEffect(() => {
     if (!containerRef.current) return;
@@ -102,13 +106,14 @@ export function PriceChart({ resolution, mode, activeAsset = 'A', onVisibleRange
     });
     ro.observe(containerRef.current);
 
-    // Sync visible range to sub-panes
-    const unsubRange = chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
-      onVisibleRangeChange?.(range);
-    });
+    // Sync visible range to sub-panes (v5 API: subscribe returns void, must use separate unsubscribe)
+    const rangeHandler = (range: import('lightweight-charts').LogicalRange | null) => {
+      onRangeChangeRef.current?.(range);
+    };
+    chart.timeScale().subscribeVisibleLogicalRangeChange(rangeHandler);
 
     return () => {
-      unsubRange();
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(rangeHandler);
       ro.disconnect();
       chart.remove();
       chartRef.current = null;

@@ -1,7 +1,7 @@
 import { Engine } from '../../src/engine/Engine.js';
 
 export interface ServerCandle {
-  time: number; // Unix timestamp in seconds (for lightweight-charts)
+  time: number; // Tick count (unique, increasing — used as chart x-axis)
   open: number;
   high: number;
   low: number;
@@ -58,9 +58,9 @@ export class ServerEngine {
       const volume = td.volume;
 
       // Each tick is its own candle (RESOLUTIONS.TICK = 1)
-      const time = Math.floor(Date.now() / 1000);
+      // Use tick count as time — must be unique & increasing for lightweight-charts
       const candle: ServerCandle = {
-        time,
+        time: this.engine.getTickCount(),
         open: price,
         high: price,
         low: price,

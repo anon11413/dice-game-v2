@@ -8,11 +8,13 @@ const HEARTBEAT_INTERVAL_MS = 30_000; // 30 seconds
 let wss: WebSocketServer;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
-// Current price, set by index.ts on each tick so new clients get it immediately
+// Current price + tick count, set by index.ts on each tick so new clients get data immediately
 let latestPrice = 100;
+let latestTickCount = 0;
 
-export function setCurrentPriceForWS(price: number): void {
+export function setCurrentPriceForWS(price: number, tickCount: number): void {
   latestPrice = price;
+  latestTickCount = tickCount;
 }
 
 export function initWebSocket(server: Server): WebSocketServer {
@@ -24,7 +26,7 @@ export function initWebSocket(server: Server): WebSocketServer {
     ws.send(JSON.stringify({
       type: 'CANDLE',
       data: {
-        time: Math.floor(Date.now() / 1000),
+        time: latestTickCount,
         open: latestPrice,
         high: latestPrice,
         low: latestPrice,

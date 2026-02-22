@@ -104,7 +104,7 @@ async function main() {
   engine.start((candle, currentPrice, currentTickCount) => {
     // Update in-memory price for REST API
     setCurrentPrice(currentPrice);
-    setCurrentPriceForWS(currentPrice);
+    setCurrentPriceForWS(currentPrice, currentTickCount);
 
     // Broadcast every tick to WebSocket clients
     broadcastCandle(candle, currentPrice);

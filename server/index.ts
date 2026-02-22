@@ -45,11 +45,18 @@ async function main() {
     });
   });
 
+  // API routes — registered early so they aren't caught by the SPA wildcard
+  app.use('/api', authRoutes);
+  app.use('/api', pricesRoutes);
+  app.use('/api', tradingRoutes);
+  app.use('/api', userRoutes);
+
   // Serve static files in production (SPA loads while engine warms up)
   if (config.isProduction) {
     const distPath = path.join(__dirname, '..', 'dist');
     app.use(express.static(distPath));
     // Express 5 requires named wildcard (path-to-regexp v8)
+    // MUST be after API routes or it catches /api/* requests
     app.get('/{*path}', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
@@ -95,13 +102,7 @@ async function main() {
   // Wire up candle accessor for history endpoint (serves from engine memory)
   setGetCandles((resolution) => engine.getCandles(resolution));
 
-  // ── 4. API routes (registered after engine is ready) ──
-  app.use('/api', authRoutes);
-  app.use('/api', pricesRoutes);
-  app.use('/api', tradingRoutes);
-  app.use('/api', userRoutes);
-
-  // ── 5. Start engine loop — 25 ticks/sec ──
+  // ── 4. Start engine loop — 25 ticks/sec ──
   let ticksSinceLastPersist = 0;
   let dbWriteInProgress = false;
 

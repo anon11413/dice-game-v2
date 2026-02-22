@@ -17,6 +17,7 @@ export function ChartPage() {
   const [resolution, setResolution] = useState<number>(RESOLUTIONS.TICK);
   const [chartMode, setChartMode] = useState<'candle' | 'line'>('candle');
   const [showTrade, setShowTrade] = useState(false);
+  const [activeAsset, setActiveAsset] = useState<'A' | 'B'>('A');
   const indicators = useIndicatorStore((s) => s.enabled);
   const location = useLocation();
   const isPlayerMode = location.pathname.startsWith('/play');
@@ -45,7 +46,7 @@ export function ChartPage() {
 
         {/* Main Chart Area */}
         <div className="flex-1 min-h-0">
-          <PriceChart resolution={resolution} mode={chartMode} />
+          <PriceChart resolution={resolution} mode={chartMode} activeAsset={activeAsset} />
         </div>
 
         {/* Sub-panes */}
@@ -60,7 +61,7 @@ export function ChartPage() {
         <>
           {/* Desktop sidebar */}
           <div className="hidden lg:block w-72 xl:w-80 border-l border-gray-800 overflow-y-auto flex-shrink-0">
-            <TradePanel />
+            <TradePanel activeAsset={activeAsset} onAssetChange={setActiveAsset} />
           </div>
 
           {/* Mobile overlay */}
@@ -73,7 +74,7 @@ export function ChartPage() {
                 <div className="bg-[#0d1117] p-1 flex justify-center">
                   <div className="w-10 h-1 bg-gray-600 rounded-full" />
                 </div>
-                <TradePanel />
+                <TradePanel activeAsset={activeAsset} onAssetChange={setActiveAsset} />
               </div>
             </div>
           )}

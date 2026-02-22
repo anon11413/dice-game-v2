@@ -16,9 +16,24 @@ import { useIndicatorStore } from '../../store/indicatorStore';
 import type { OHLCV } from '../../engine/types';
 import { sma, ema, bollingerBands, vwap as calcVwap } from '../../engine/aggregation/indicators';
 
+const BASE_PRICE = 100;
+
 interface Props {
   resolution: number;
   mode: 'candle' | 'line';
+  activeAsset?: 'A' | 'B';
+}
+
+/** Invert Stock A candle to Stock B (priceB = max(0.01, 200 - priceA)) */
+function invertCandle(c: OHLCV): OHLCV {
+  return {
+    time: c.time,
+    open: Math.max(0.01, 2 * BASE_PRICE - c.open),
+    high: Math.max(0.01, 2 * BASE_PRICE - c.low),   // A's low → B's high
+    low: Math.max(0.01, 2 * BASE_PRICE - c.high),    // A's high → B's low
+    close: Math.max(0.01, 2 * BASE_PRICE - c.close),
+    volume: c.volume,
+  };
 }
 
 function ohlcvToCandle(c: OHLCV): CandlestickData<Time> {
@@ -35,7 +50,7 @@ function ohlcvToLine(c: OHLCV): LineData<Time> {
   return { time: c.time as Time, value: c.close };
 }
 
-export function PriceChart({ resolution, mode }: Props) {
+export function PriceChart({ resolution, mode, activeAsset = 'A' }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const mainSeriesRef = useRef<ISeriesApi<'Candlestick'> | ISeriesApi<'Line'> | null>(null);
@@ -144,7 +159,10 @@ export function PriceChart({ resolution, mode }: Props) {
   }, [resolution, isDevMode]);
 
   // Subscribe to candle data and update chart
-  const candles = useMarketStore((s) => s.candles.get(resolution));
+  const rawCandles = useMarketStore((s) => s.candles.get(resolution));
+  const candles = rawCandles && activeAsset === 'B'
+    ? rawCandles.map(invertCandle)
+    : rawCandles;
 
   const updateChart = useCallback(() => {
     const chart = chartRef.current;

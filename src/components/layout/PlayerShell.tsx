@@ -12,6 +12,7 @@ const tabs = [
   { path: '/play/portfolio', label: 'Portfolio' },
   { path: '/play/settings', label: 'Settings' },
   { path: '/play/leaderboard', label: 'Leaderboard' },
+  { path: '/play/research', label: 'Research' },
 ];
 
 export function PlayerShell() {

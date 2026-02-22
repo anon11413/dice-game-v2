@@ -7,6 +7,7 @@ import { LandingPage } from './components/pages/LandingPage';
 import { PortfolioPage } from './components/pages/PortfolioPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { LeaderboardPage } from './components/pages/LeaderboardPage';
+import { ResearchPage } from './components/pages/ResearchPage';
 
 // Layouts
 import { PlayerShell } from './components/layout/PlayerShell';
@@ -46,6 +47,7 @@ function AppInner() {
         <Route path="portfolio" element={<PortfolioPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="leaderboard" element={<LeaderboardPage />} />
+        <Route path="research" element={<ResearchPage />} />
       </Route>
 
       {/* Dev routes */}

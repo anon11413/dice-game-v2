@@ -5,8 +5,15 @@ import { usePlayerStore } from '../../store/playerStore';
 
 const BASE_PRICE = 100;
 
-export function TradePanel() {
-  const [activeAsset, setActiveAsset] = useState<'A' | 'B'>('A');
+interface TradePanelProps {
+  activeAsset?: 'A' | 'B';
+  onAssetChange?: (asset: 'A' | 'B') => void;
+}
+
+export function TradePanel({ activeAsset: assetProp, onAssetChange }: TradePanelProps = {}) {
+  const [localAsset, setLocalAsset] = useState<'A' | 'B'>('A');
+  const activeAsset = assetProp ?? localAsset;
+  const setActiveAsset = onAssetChange ?? setLocalAsset;
   const [quantity, setQuantity] = useState('');
   const priceA = useMarketStore((s) => s.price);
   const priceB = Math.max(0.01, 2 * BASE_PRICE - priceA);

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import type { LogicalRange } from 'lightweight-charts';
 import { TickerBar } from './TickerBar';
 import { ResolutionSelector } from './ResolutionSelector';
 import { ChartModeToggle } from './ChartModeToggle';
@@ -18,7 +19,9 @@ export function ChartPage() {
   const [chartMode, setChartMode] = useState<'candle' | 'line'>('candle');
   const [showTrade, setShowTrade] = useState(false);
   const [activeAsset, setActiveAsset] = useState<'A' | 'B'>('A');
+  const [visibleRange, setVisibleRange] = useState<LogicalRange | null>(null);
   const indicators = useIndicatorStore((s) => s.enabled);
+  const handleVisibleRangeChange = useCallback((range: LogicalRange | null) => setVisibleRange(range), []);
   const location = useLocation();
   const isPlayerMode = location.pathname.startsWith('/play');
 
@@ -46,14 +49,14 @@ export function ChartPage() {
 
         {/* Main Chart Area */}
         <div className="flex-1 min-h-0">
-          <PriceChart resolution={resolution} mode={chartMode} activeAsset={activeAsset} />
+          <PriceChart resolution={resolution} mode={chartMode} activeAsset={activeAsset} onVisibleRangeChange={handleVisibleRangeChange} />
         </div>
 
         {/* Sub-panes */}
-        {indicators.volume && <VolumePane resolution={resolution} />}
-        {indicators.rsi && <RsiPane resolution={resolution} />}
-        {indicators.macd && <MacdPane resolution={resolution} />}
-        {indicators.ttmSqueeze && <SqueezePane resolution={resolution} />}
+        {indicators.volume && <VolumePane resolution={resolution} visibleRange={visibleRange} />}
+        {indicators.rsi && <RsiPane resolution={resolution} visibleRange={visibleRange} />}
+        {indicators.macd && <MacdPane resolution={resolution} visibleRange={visibleRange} />}
+        {indicators.ttmSqueeze && <SqueezePane resolution={resolution} visibleRange={visibleRange} />}
       </div>
 
       {/* Trade Panel - Desktop: always visible sidebar, Mobile: overlay */}

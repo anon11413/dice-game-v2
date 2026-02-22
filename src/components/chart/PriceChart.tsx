@@ -22,6 +22,7 @@ interface Props {
   resolution: number;
   mode: 'candle' | 'line';
   activeAsset?: 'A' | 'B';
+  onVisibleRangeChange?: (range: import('lightweight-charts').LogicalRange | null) => void;
 }
 
 /** Invert Stock A candle to Stock B (priceB = max(0.01, 200 - priceA)) */
@@ -50,7 +51,7 @@ function ohlcvToLine(c: OHLCV): LineData<Time> {
   return { time: c.time as Time, value: c.close };
 }
 
-export function PriceChart({ resolution, mode, activeAsset = 'A' }: Props) {
+export function PriceChart({ resolution, mode, activeAsset = 'A', onVisibleRangeChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const mainSeriesRef = useRef<ISeriesApi<'Candlestick'> | ISeriesApi<'Line'> | null>(null);
@@ -101,7 +102,13 @@ export function PriceChart({ resolution, mode, activeAsset = 'A' }: Props) {
     });
     ro.observe(containerRef.current);
 
+    // Sync visible range to sub-panes
+    const unsubRange = chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
+      onVisibleRangeChange?.(range);
+    });
+
     return () => {
+      unsubRange();
       ro.disconnect();
       chart.remove();
       chartRef.current = null;

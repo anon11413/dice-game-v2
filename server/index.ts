@@ -9,7 +9,7 @@ import { pool } from './db/pool.js';
 import { migrate } from './db/migrate.js';
 import { getPriceState, updatePriceState, insertCandle } from './db/queries/prices.js';
 import { ServerEngine } from './engine/ServerEngine.js';
-import { initWebSocket, broadcastCandle, setCurrentPriceForWS } from './ws/broadcast.js';
+import { initWebSocket, broadcastCandle, broadcastAnalysis, setCurrentPriceForWS } from './ws/broadcast.js';
 
 import authRoutes from './routes/auth.js';
 import pricesRoutes, { setCurrentPrice, setGetCandles } from './routes/prices.js';
@@ -110,6 +110,11 @@ async function main() {
 
     // Broadcast every tick to WebSocket clients
     broadcastCandle(candle, currentPrice);
+
+    // Broadcast analysis data at ~5Hz (every 5 ticks) for Analysis page
+    if (currentTickCount % 5 === 0) {
+      broadcastAnalysis(engine.getAnalysisData());
+    }
 
     // Accumulate aggregate candle for DB
     ticksSinceLastPersist++;

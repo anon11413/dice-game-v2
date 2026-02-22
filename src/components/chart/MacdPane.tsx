@@ -3,6 +3,7 @@ import {
   createChart,
   type IChartApi,
   type ISeriesApi,
+  type LogicalRange,
   type Time,
   ColorType,
   LineSeries,
@@ -14,9 +15,10 @@ import type { OHLCV } from '../../engine/types';
 
 interface Props {
   resolution: number;
+  visibleRange?: LogicalRange | null;
 }
 
-export function MacdPane({ resolution }: Props) {
+export function MacdPane({ resolution, visibleRange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const macdLineRef = useRef<ISeriesApi<'Line'> | null>(null);
@@ -87,6 +89,13 @@ export function MacdPane({ resolution }: Props) {
     signalLineRef.current.setData(signalLine);
     histogramRef.current.setData(histogram);
   }, [candles]);
+
+  // Sync time scale with main chart
+  useEffect(() => {
+    if (chartRef.current && visibleRange) {
+      chartRef.current.timeScale().setVisibleLogicalRange(visibleRange);
+    }
+  }, [visibleRange]);
 
   return (
     <div className="border-t border-gray-800">

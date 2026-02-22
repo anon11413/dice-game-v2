@@ -1,5 +1,5 @@
 import { Engine } from '../../src/engine/Engine.js';
-import type { OHLCV } from '../../src/engine/types.js';
+import type { OHLCV, BookSnapshot } from '../../src/engine/types.js';
 
 export interface ServerCandle {
   time: number; // Tick count (unique, increasing — used as chart x-axis)
@@ -103,5 +103,33 @@ export class ServerEngine {
   /** Get candles at any resolution from the engine's CandleAggregator */
   getCandles(resolution: number): OHLCV[] {
     return this.engine.getCandles(resolution);
+  }
+
+  /** Get analysis data for broadcasting to clients */
+  getAnalysisData(): {
+    bandMeans: number[];
+    bandStds: number[];
+    diceGrid: number[];
+    shortInterest: number;
+    utilization: number;
+    bookSnapshot: BookSnapshot;
+  } {
+    const stats = this.engine.getBandStats();
+    const state = this.engine.getState();
+    const grid = this.engine.getDiceGrid();
+    const book = this.engine.getBookSnapshot();
+
+    // Delayed SI (same 5-tick delay as dev mode)
+    const delayedSI = state.siDelayBuffer.length > 0 ? state.siDelayBuffer[0] : state.SI_t;
+    const delayedUtil = state.utilDelayBuffer.length > 0 ? state.utilDelayBuffer[0] : 0;
+
+    return {
+      bandMeans: stats.map(s => s.mean),
+      bandStds: stats.map(s => s.std),
+      diceGrid: Array.from(grid),
+      shortInterest: delayedSI,
+      utilization: delayedUtil,
+      bookSnapshot: book,
+    };
   }
 }

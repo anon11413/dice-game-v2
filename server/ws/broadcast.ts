@@ -109,6 +109,25 @@ export function broadcastPrice(priceA: number): void {
   }
 }
 
+export function broadcastAnalysis(data: {
+  bandMeans: number[];
+  bandStds: number[];
+  diceGrid: number[];
+  shortInterest: number;
+  utilization: number;
+  bookSnapshot: { bids: any[]; asks: any[]; bestBid: number | null; bestAsk: number | null; spread: number | null };
+}): void {
+  if (!wss) return;
+
+  const message = JSON.stringify({ type: 'ANALYSIS', data });
+
+  for (const client of wss.clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
+}
+
 export function getClientCount(): number {
   if (!wss) return 0;
   let count = 0;

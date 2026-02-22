@@ -1,6 +1,7 @@
 import { api } from '../api/client';
 import { wsClient } from '../api/wsClient';
 import { useMarketStore } from '../store/marketStore';
+import { useDiceStore } from '../store/diceStore';
 import { CandleAggregator } from '../engine/aggregation/CandleAggregator';
 import { RESOLUTIONS } from '../engine/constants';
 import type { OHLCV } from '../engine/types';
@@ -24,6 +25,7 @@ const PLAYER_RESOLUTIONS = [
  */
 export class ServerBridge {
   private unsubCandle: (() => void) | null = null;
+  private unsubAnalysis: (() => void) | null = null;
   private connected = false;
   private aggregator: CandleAggregator | null = null;
   private historyCandles: Map<number, OHLCV[]> = new Map();
@@ -96,6 +98,24 @@ export class ServerBridge {
       s.updateTick(data.price, data.volume, null, null, 0, 0, 0, 0);
     });
 
+    // 4. Subscribe to analysis data for Analysis page
+    this.unsubAnalysis = wsClient.on('ANALYSIS', (data: any) => {
+      // Update dice store
+      const grid = new Uint8Array(data.diceGrid);
+      useDiceStore.getState().updateDice(grid, data.bandMeans, data.bandStds);
+
+      // Update market store with book/SI data
+      const ms = useMarketStore.getState();
+      ms.updateTick(
+        ms.price, 0,
+        data.bookSnapshot.bestBid, data.bookSnapshot.bestAsk,
+        data.shortInterest, data.utilization,
+        data.bookSnapshot.bids.reduce((sum: number, l: any) => sum + l.totalSize, 0),
+        data.bookSnapshot.asks.reduce((sum: number, l: any) => sum + l.totalSize, 0)
+      );
+      ms.setBookSnapshot(data.bookSnapshot);
+    });
+
     this.connected = true;
     console.log('[ServerBridge] Connected');
   }
@@ -104,6 +124,10 @@ export class ServerBridge {
     if (this.unsubCandle) {
       this.unsubCandle();
       this.unsubCandle = null;
+    }
+    if (this.unsubAnalysis) {
+      this.unsubAnalysis();
+      this.unsubAnalysis = null;
     }
     wsClient.disconnect();
     this.historyCandles.clear();

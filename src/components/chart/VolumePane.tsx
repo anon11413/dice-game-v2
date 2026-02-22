@@ -3,6 +3,7 @@ import {
   createChart,
   type IChartApi,
   type ISeriesApi,
+  type LogicalRange,
   type Time,
   ColorType,
   HistogramSeries,
@@ -12,9 +13,10 @@ import type { OHLCV } from '../../engine/types';
 
 interface Props {
   resolution: number;
+  visibleRange?: LogicalRange | null;
 }
 
-export function VolumePane({ resolution }: Props) {
+export function VolumePane({ resolution, visibleRange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
@@ -58,6 +60,13 @@ export function VolumePane({ resolution }: Props) {
       }))
     );
   }, [candles]);
+
+  // Sync time scale with main chart
+  useEffect(() => {
+    if (chartRef.current && visibleRange) {
+      chartRef.current.timeScale().setVisibleLogicalRange(visibleRange);
+    }
+  }, [visibleRange]);
 
   return (
     <div className="border-t border-gray-800">

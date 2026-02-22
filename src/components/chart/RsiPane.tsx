@@ -3,6 +3,7 @@ import {
   createChart,
   type IChartApi,
   type ISeriesApi,
+  type LogicalRange,
   type Time,
   ColorType,
   LineSeries,
@@ -13,9 +14,10 @@ import type { OHLCV } from '../../engine/types';
 
 interface Props {
   resolution: number;
+  visibleRange?: LogicalRange | null;
 }
 
-export function RsiPane({ resolution }: Props) {
+export function RsiPane({ resolution, visibleRange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Line'> | null>(null);
@@ -62,6 +64,13 @@ export function RsiPane({ resolution }: Props) {
       .filter(Boolean) as { time: Time; value: number }[];
     seriesRef.current.setData(data);
   }, [candles]);
+
+  // Sync time scale with main chart
+  useEffect(() => {
+    if (chartRef.current && visibleRange) {
+      chartRef.current.timeScale().setVisibleLogicalRange(visibleRange);
+    }
+  }, [visibleRange]);
 
   return (
     <div className="border-t border-gray-800">

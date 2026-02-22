@@ -23,7 +23,7 @@ export const DEFAULT_CONFIG: SimConfig = {
   EVENT_HIGH_THRESH: 18.5,
   EVENT_LOW_THRESH: 2.5,
   EVENT_DURATION: 15,
-  SENTIMENT_DECAY: 0.92,
+  SENTIMENT_DECAY: 0.80,
 };
 
 /** Band parameter tables (Section 6.1) */

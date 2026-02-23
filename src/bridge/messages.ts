@@ -16,6 +16,7 @@ export type WorkerCommand =
   | { type: 'GET_CANDLES'; resolution: number; from?: number; to?: number }
   | { type: 'GET_BOOK_SNAPSHOT' }
   | { type: 'SET_ANALYSIS_MODE'; mode: AnalysisMode }
+  | { type: 'SET_PRICE_SCALE'; value: number }
   | { type: 'RESET'; seed: number; config?: Partial<SimConfig> };
 
 /** Events sent FROM the Worker TO the UI */

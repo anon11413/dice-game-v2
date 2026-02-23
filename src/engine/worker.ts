@@ -107,6 +107,11 @@ self.onmessage = (e: MessageEvent<WorkerCommand>) => {
       break;
     }
 
+    case 'SET_PRICE_SCALE': {
+      if (engine) engine.setPriceScale(msg.value);
+      break;
+    }
+
     case 'RESET': {
       stopLoop();
       engine = new Engine(msg.seed, msg.config);

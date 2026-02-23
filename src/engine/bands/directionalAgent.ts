@@ -80,7 +80,7 @@ export function generateDirectionalOrders(
     } else {
       // Limit order
       const offset = prng.uniform(bandConfig.limitOffsetMin, bandConfig.limitOffsetMax)
-        * state.P_t * state.kappa_t;
+        * state.P_t * state.kappa_t / config.PRICE_SCALE;
       if (rawDir === 1) {
         const price = roundToTick(state.P_t - offset, config.TICK_SIZE);
         orders.push(createOrder('BUY', 'LIMIT', Math.max(price, config.TICK_SIZE), size, bandConfig.source));

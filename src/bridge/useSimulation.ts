@@ -143,6 +143,10 @@ export function useSimulation() {
     bridge.current.send({ type: 'SET_ANALYSIS_MODE', mode });
   }, []);
 
+  const setPriceScale = useCallback((value: number) => {
+    bridge.current.send({ type: 'SET_PRICE_SCALE', value });
+  }, []);
+
   const reset = useCallback((customSeed?: number, config?: Partial<SimConfig>) => {
     bridge.current.send({
       type: 'RESET',
@@ -160,6 +164,7 @@ export function useSimulation() {
     requestCandles,
     requestBookSnapshot,
     setAnalysisMode,
+    setPriceScale,
     reset,
   };
 }

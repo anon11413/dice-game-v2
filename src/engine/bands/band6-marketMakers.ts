@@ -24,7 +24,7 @@ export function generateMarketMakerOrders(
   const baseSpreadPct = 0.003;
   let spreadFactor = 2.5 - (mmMean / 20.0) * 2.0; // ~0.5 (tight) to ~2.5 (wide)
   spreadFactor *= state.kappa_t;
-  let halfSpread = state.P_t * baseSpreadPct * spreadFactor;
+  let halfSpread = state.P_t * baseSpreadPct * spreadFactor / config.PRICE_SCALE;
   halfSpread = Math.max(halfSpread, config.TICK_SIZE);
 
   // Depth (shares at each level)
@@ -51,9 +51,9 @@ export function generateMarketMakerOrders(
   const mmFear = mmMean < 4.0;
 
   if (volPanic || fastMove || mmFear) {
-    depth = Math.floor(depth * 0.2);
-    halfSpread *= 3.0;
-    numLevels = 5;
+    depth = Math.floor(depth * 0.4);
+    halfSpread *= 2.5;
+    numLevels = 10;
   }
 
   // === Generate MM orders (Section 7.2) ===

@@ -40,10 +40,11 @@ export function computeBandStats(grid: Uint8Array, bandIndex: number): BandStats
   return { mean, std, colMeans };
 }
 
-/** Compute statistics for all 10 bands */
+/** Compute statistics for all bands (dynamic count based on grid size) */
 export function computeAllBandStats(grid: Uint8Array): BandStats[] {
-  const stats: BandStats[] = new Array(10);
-  for (let b = 0; b < 10; b++) {
+  const numBands = Math.floor(grid.length / (BAND_ROWS * GRID_COLS));
+  const stats: BandStats[] = new Array(numBands);
+  for (let b = 0; b < numBands; b++) {
     stats[b] = computeBandStats(grid, b);
   }
   return stats;

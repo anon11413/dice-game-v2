@@ -32,7 +32,7 @@ export function generateShortOrders(
           orders.push(createOrder('SELL', 'MARKET', null, size, 'SHORT'));
         } else {
           const price = roundToTick(
-            state.P_t + prng.uniform(0, 0.003) * state.P_t,
+            state.P_t + prng.uniform(0, 0.003) * state.P_t / config.PRICE_SCALE,
             config.TICK_SIZE
           );
           orders.push(createOrder('SELL', 'LIMIT', price, size, 'SHORT'));
@@ -50,7 +50,7 @@ export function generateShortOrders(
           orders.push(createOrder('BUY', 'MARKET', null, size, 'SHORT'));
         } else {
           const price = roundToTick(
-            state.P_t - prng.uniform(0, 0.002) * state.P_t,
+            state.P_t - prng.uniform(0, 0.002) * state.P_t / config.PRICE_SCALE,
             config.TICK_SIZE
           );
           orders.push(createOrder('BUY', 'LIMIT', price, size, 'SHORT'));
@@ -81,7 +81,7 @@ export function evaluateSqueeze(state: SimState, config: SimConfig): void {
     priceRise = (state.P_t - pastPrice) / pastPrice;
   }
   const condPrice = priceRise > config.SQUEEZE_PRICE_THRESH;
-  const condSentiment = state.sentiment_t > 0.6;
+  const condSentiment = state.sentiment_t > 0.57;
   const condVol = state.kappa_t > 1.2;
 
   if (condUtil && condPrice && condSentiment && condVol) {

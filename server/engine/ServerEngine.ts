@@ -1,5 +1,6 @@
 import { Engine } from '../../src/engine/Engine.js';
 import { config } from '../config.js';
+import { tickToTimestamp } from '../../src/engine/aggregation/CandleAggregator.js';
 import type { OHLCV, BookSnapshot, ExtendedAnalysisData, RevealData } from '../../src/engine/types.js';
 
 export interface ServerCandle {
@@ -61,10 +62,10 @@ export class ServerEngine {
       const price = td.price;
       const volume = td.volume;
 
-      // Each tick is its own candle (RESOLUTIONS.TICK = 1)
-      // Use tick count as time — must be unique & increasing for lightweight-charts
+      // Each tick emitted as a candle; client aggregates at chosen resolution
+      // Convert tick count to Unix timestamp for proper chart x-axis labels
       const candle: ServerCandle = {
-        time: this.engine.getTickCount(),
+        time: tickToTimestamp(this.engine.getTickCount()),
         open: price,
         high: price,
         low: price,

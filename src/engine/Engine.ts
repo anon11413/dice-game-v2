@@ -15,7 +15,7 @@ import { toPlayerVisible } from './history/TickLog';
 
 // Band implementations
 import { updateKappa } from './bands/band7-volatility';
-import { updateFundamental, generateValueOrders } from './bands/band4-fundamental';
+import { generateValueOrders } from './bands/band4-fundamental';
 import { updateRegime } from './bands/band10-regime';
 import { updateSentiment } from './bands/band9-sentiment';
 import { evaluateEvents } from './bands/band8-events';
@@ -24,6 +24,8 @@ import { generateSwingOrders } from './bands/band2-swing';
 import { generatePositionOrders } from './bands/band3-position';
 import { generateMarketMakerOrders } from './bands/band6-marketMakers';
 import { generateShortOrders, evaluateSqueeze, generateSqueezeCovers } from './bands/band5-shorts';
+import { updateTrend } from './bands/band11-trend';
+import { updateVolumeProfile, detectSRLevels, flipBrokenLevels, generateSROrders } from './bands/band12-supportResistance';
 
 /**
  * DiceStock Engine — Main Simulation Controller
@@ -49,11 +51,15 @@ export class Engine {
     this.grid = new DiceGrid(this.config.GRID_ROWS, this.config.GRID_COLS);
     this.book = new OrderBook();
     this.candleAggregator = new CandleAggregator([
-      RESOLUTIONS.TICK,
-      RESOLUTIONS.HOURLY,
-      RESOLUTIONS.DAILY,
-      RESOLUTIONS.WEEKLY,
-      RESOLUTIONS.FULL_DAY,
+      RESOLUTIONS.ONE_SEC,
+      RESOLUTIONS.ONE_MIN,
+      RESOLUTIONS.TWO_MIN,
+      RESOLUTIONS.FIVE_MIN,
+      RESOLUTIONS.TEN_MIN,
+      RESOLUTIONS.TWENTY_MIN,
+      RESOLUTIONS.ONE_HOUR,
+      RESOLUTIONS.TWO_HOUR,
+      RESOLUTIONS.ONE_DAY,
     ]);
     this.tickStore = new TickStore(1000);
 
@@ -76,6 +82,9 @@ export class Engine {
       tickVolume: 0,
       siDelayBuffer: [],
       utilDelayBuffer: [],
+      trendSignal_t: 0,
+      srLevels: [],
+      volumeProfile: new Map(),
     };
 
     // Seed the order book (Section 15.3)
@@ -117,10 +126,8 @@ export class Engine {
     // a. Update volatility multiplier (Band 7 = index 6)
     updateKappa(this.state, stats[6]);
 
-    // b. Update fundamental value (Band 4 = index 3, every 65 ticks)
-    if (this.state.tickCount % 65 === 0) {
-      updateFundamental(this.state, this.config, stats[3]);
-    }
+    // b. Update fundamental value via Band 11 OU trend (every tick)
+    updateTrend(this.state, this.config, stats[10]);
 
     // c. Update meta-regime (Band 10 = index 9, every 13 ticks)
     if (this.state.tickCount % 13 === 0) {
@@ -162,6 +169,11 @@ export class Engine {
     // f. Value agent orders (Band 4 = index 3, every 65 ticks)
     if (this.state.tickCount % 65 === 0) {
       orders.push(...generateValueOrders(this.state, this.config, stats[3], this.prng));
+    }
+
+    // f2. S/R orders (Band 12 = index 11, every 65 ticks)
+    if (this.state.tickCount % 65 === 0) {
+      orders.push(...generateSROrders(this.state, this.config, stats[11]));
     }
 
     // g. Short seller orders (Band 5 = index 4)
@@ -247,11 +259,22 @@ export class Engine {
     // Check squeeze termination
     if (this.state.squeeze_active) {
       this.state.squeeze_tick_counter++;
-      if (this.state.squeeze_tick_counter > 40 || this.state.SI_t / this.config.FLOAT < 0.20) {
+      if (this.state.squeeze_tick_counter > 390 || this.state.SI_t / this.config.FLOAT < 0.35) {
         this.state.squeeze_active = false;
         this.state.squeeze_tick_counter = 0;
       }
     }
+
+    // Volume profile tracking (Band 12)
+    updateVolumeProfile(this.state, this.config, trades);
+
+    // S/R level detection (every 65 ticks)
+    if (this.state.tickCount % 65 === 0) {
+      detectSRLevels(this.state, this.config);
+    }
+
+    // S/R level flips
+    flipBrokenLevels(this.state, this.config);
 
     // Aggregate candles
     this.candleAggregator.addTick(this.state.tickCount, this.state.P_t, this.state.tickVolume);
@@ -278,6 +301,10 @@ export class Engine {
   }
 
   // ---- Public Query Methods ----
+
+  setPriceScale(scale: number): void {
+    (this.config as { PRICE_SCALE: number }).PRICE_SCALE = scale;
+  }
 
   getCandles(resolution: number, from?: number, to?: number): OHLCV[] {
     return this.candleAggregator.getCandlesWithCurrent(resolution);
@@ -335,6 +362,8 @@ export class Engine {
       regime_t: { ...this.state.regime_t },
       squeeze_active: this.state.squeeze_active,
       event_active: this.state.event_active ? { ...this.state.event_active } : null,
+      trendSignal_t: this.state.trendSignal_t,
+      srLevelCount: this.state.srLevels.length,
     };
   }
 }

@@ -6,10 +6,15 @@ interface Props {
 }
 
 const options = [
-  { label: '1T', value: RESOLUTIONS.TICK },
-  { label: '13T', value: RESOLUTIONS.HOURLY },
-  { label: '65T', value: RESOLUTIONS.DAILY },
-  { label: '325T', value: RESOLUTIONS.WEEKLY },
+  { label: '1s', value: RESOLUTIONS.ONE_SEC },
+  { label: '1m', value: RESOLUTIONS.ONE_MIN },
+  { label: '2m', value: RESOLUTIONS.TWO_MIN },
+  { label: '5m', value: RESOLUTIONS.FIVE_MIN },
+  { label: '10m', value: RESOLUTIONS.TEN_MIN },
+  { label: '20m', value: RESOLUTIONS.TWENTY_MIN },
+  { label: '1h', value: RESOLUTIONS.ONE_HOUR },
+  { label: '2h', value: RESOLUTIONS.TWO_HOUR },
+  { label: '1D', value: RESOLUTIONS.ONE_DAY },
 ];
 
 export function ResolutionSelector({ selected, onChange }: Props) {

@@ -1,10 +1,23 @@
 import type { OHLCV } from '../types';
 
 /**
+ * Convert a tick number to a Unix timestamp for chart display.
+ * Maps tick 0 → Jan 1, 2000 (946684800).
+ * Uses 5 ticks = 1 second so that the finest candle resolution (ONE_SEC = 5)
+ * always produces strictly increasing integer timestamps.
+ * 325 ticks ≈ 65 seconds (labeled "1 minute").
+ */
+export function tickToTimestamp(tick: number): number {
+  return 946684800 + Math.floor(tick / 5);
+}
+
+/**
  * Multi-resolution OHLCV candle aggregator.
  * Maintains candles at multiple resolutions simultaneously.
  * Each resolution has an in-progress candle that finalizes every N ticks.
  */
+const MAX_CANDLES = 10_000;
+
 export class CandleAggregator {
   private candles: Map<number, OHLCV[]> = new Map();
   private currentCandle: Map<number, OHLCV> = new Map();
@@ -25,11 +38,16 @@ export class CandleAggregator {
       if (!current || tick % res === 0) {
         // Finalize previous candle if it exists
         if (current) {
-          this.candles.get(res)!.push({ ...current });
+          const arr = this.candles.get(res)!;
+          arr.push({ ...current });
+          // Prevent unbounded memory growth
+          if (arr.length > MAX_CANDLES) {
+            arr.splice(0, arr.length - MAX_CANDLES);
+          }
         }
         // Start new candle
         this.currentCandle.set(res, {
-          time: tick,
+          time: tickToTimestamp(tick),
           open: price,
           high: price,
           low: price,

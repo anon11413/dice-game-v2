@@ -26,6 +26,28 @@ export interface SimConfig {
   EVENT_LOW_THRESH: number;
   EVENT_DURATION: number;
   SENTIMENT_DECAY: number;
+
+  // Trend (Band 11)
+  F_TREND_MU: number;
+  F_TREND_ALPHA: number;
+  F_TREND_THETA: number;
+  F_TREND_SIGMA: number;
+
+  // Support/Resistance (Band 12)
+  SR_DECAY: number;
+  SR_MAX_LEVELS: number;
+  SR_PROXIMITY: number;
+  SR_BASE_SIZE: number;
+  SR_TEST_DECAY: number;
+  SR_BREAK_THRESH: number;
+
+  // Value agent tiers
+  VALUE_PASSIVE_GAP: number;
+  VALUE_URGENT_GAP: number;
+  VALUE_EMERGENCY_GAP: number;
+
+  // Price movement compression (divides all price offsets)
+  PRICE_SCALE: number;
 }
 
 /** Mutable simulation state (Section 1.2). Updated every tick. */
@@ -48,6 +70,13 @@ export interface SimState {
   // For delayed SI reporting (5-tick delay)
   siDelayBuffer: number[];         // Ring buffer of 5 SI values
   utilDelayBuffer: number[];       // Ring buffer of 5 utilization values
+
+  // Band 11: Trend driver
+  trendSignal_t: number;           // EMA of Band 11 dice signal (init: 0)
+
+  // Band 12: Support/Resistance
+  srLevels: SRLevel[];             // Active S/R levels (max 10)
+  volumeProfile: Map<number, number>; // Price bucket → accumulated volume
 }
 
 export interface Regime {
@@ -61,6 +90,14 @@ export interface EventState {
   magnitude: number;
 }
 
+export interface SRLevel {
+  price: number;
+  strength: number;       // 0-1
+  side: 'support' | 'resistance';
+  volumeAccumulated: number;
+  testCount: number;
+}
+
 /** Band statistics computed per tick */
 export interface BandStats {
   mean: number;
@@ -72,7 +109,7 @@ export interface BandStats {
 
 export type OrderSide = 'BUY' | 'SELL';
 export type OrderType = 'MARKET' | 'LIMIT';
-export type OrderSource = 'SCALP' | 'SWING' | 'POS' | 'VALUE' | 'MM' | 'SHORT' | 'SQUEEZE';
+export type OrderSource = 'SCALP' | 'SWING' | 'POS' | 'VALUE' | 'MM' | 'SHORT' | 'SQUEEZE' | 'SR';
 
 export interface Order {
   id: number;
@@ -177,6 +214,8 @@ export interface RevealData {
   regime_t: Regime;
   squeeze_active: boolean;
   event_active: EventState | null;
+  trendSignal_t: number;
+  srLevelCount: number;
 }
 
 // ---- Directional Band Config (Section 6.1) ----

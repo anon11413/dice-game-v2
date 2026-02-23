@@ -120,7 +120,7 @@ async function main() {
     setCurrentPriceForWS(currentPrice, currentTickCount);
 
     // Broadcast every tick to WebSocket clients
-    broadcastCandle(candle, currentPrice);
+    broadcastCandle(candle, currentPrice, currentTickCount);
 
     // Broadcast analysis data at ~5Hz (every 5 ticks) for Analysis page
     if (currentTickCount % 5 === 0) {

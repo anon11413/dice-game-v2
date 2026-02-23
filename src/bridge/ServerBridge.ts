@@ -75,13 +75,14 @@ export class ServerBridge {
     wsClient.connect(token);
 
     this.unsubCandle = wsClient.on('CANDLE', (data: any) => {
-      const tick = data.time;
+      const time = data.time;        // Unix timestamp for history comparison
+      const tick = data.tickCount;   // Raw tick count for CandleAggregator
 
       // Skip ticks already covered by history
-      if (tick <= this.lastHistoryTick) return;
+      if (time <= this.lastHistoryTick) return;
 
-      // Feed tick to aggregator for multi-resolution candle building
-      if (this.aggregator) {
+      // Feed raw tick count to aggregator for multi-resolution candle building
+      if (this.aggregator && tick != null) {
         this.aggregator.addTick(tick, data.close, data.volume);
       }
 

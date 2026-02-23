@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
 import type { ServerCandle } from '../engine/ServerEngine.js';
+import { tickToTimestamp } from '../../src/engine/aggregation/CandleAggregator.js';
 
 const BASE_PRICE = 100;
 const HEARTBEAT_INTERVAL_MS = 30_000; // 30 seconds
@@ -26,7 +27,8 @@ export function initWebSocket(server: Server): WebSocketServer {
     ws.send(JSON.stringify({
       type: 'CANDLE',
       data: {
-        time: latestTickCount,
+        time: tickToTimestamp(latestTickCount),
+        tickCount: latestTickCount,
         open: latestPrice,
         high: latestPrice,
         low: latestPrice,
@@ -71,7 +73,7 @@ export function initWebSocket(server: Server): WebSocketServer {
   return wss;
 }
 
-export function broadcastCandle(candle: ServerCandle, currentPrice: number): void {
+export function broadcastCandle(candle: ServerCandle, currentPrice: number, tickCount: number): void {
   if (!wss) return;
 
   const priceB = Math.max(0.01, 2 * BASE_PRICE - currentPrice);
@@ -80,6 +82,7 @@ export function broadcastCandle(candle: ServerCandle, currentPrice: number): voi
     type: 'CANDLE',
     data: {
       ...candle,
+      tickCount,
       price: currentPrice,
       priceB,
     },

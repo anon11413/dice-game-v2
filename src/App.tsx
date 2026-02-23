@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 
@@ -7,7 +7,7 @@ import { LandingPage } from './components/pages/LandingPage';
 import { PortfolioPage } from './components/pages/PortfolioPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { LeaderboardPage } from './components/pages/LeaderboardPage';
-import { ResearchPage } from './components/pages/ResearchPage';
+const ResearchPage = lazy(() => import('./components/pages/ResearchPage').then(m => ({ default: m.ResearchPage })));
 
 // Layouts
 import { PlayerShell } from './components/layout/PlayerShell';
@@ -47,7 +47,7 @@ function AppInner() {
         <Route path="portfolio" element={<PortfolioPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="leaderboard" element={<LeaderboardPage />} />
-        <Route path="research" element={<ResearchPage />} />
+        <Route path="research" element={<Suspense fallback={<div className="flex items-center justify-center h-full text-gray-400">Loading...</div>}><ResearchPage /></Suspense>} />
       </Route>
 
       {/* Dev routes */}

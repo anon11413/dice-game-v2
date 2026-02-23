@@ -41,3 +41,105 @@ body {
 @media (pointer: coarse) {
   input, select, button { min-height: 44px; }
 }
+
+/* ── Research Paper Markdown Styles ── */
+.paper-content {
+  color: #c9d1d9;
+  line-height: 1.7;
+}
+.paper-content h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #f0f6fc;
+  margin: 2rem 0 1rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #21262d;
+}
+.paper-content h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #f0f6fc;
+  margin: 2rem 0 0.75rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid #21262d;
+}
+.paper-content h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #e6edf3;
+  margin: 1.5rem 0 0.5rem;
+}
+.paper-content p {
+  margin: 0.75rem 0;
+}
+.paper-content strong {
+  color: #f0f6fc;
+}
+.paper-content em {
+  color: #d2a8ff;
+}
+.paper-content a {
+  color: #58a6ff;
+  text-decoration: none;
+}
+.paper-content a:hover {
+  text-decoration: underline;
+}
+.paper-content hr {
+  border: none;
+  border-top: 1px solid #21262d;
+  margin: 2rem 0;
+}
+.paper-content ul, .paper-content ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+.paper-content li {
+  margin: 0.25rem 0;
+}
+.paper-content blockquote {
+  border-left: 3px solid #3b82f6;
+  padding-left: 1rem;
+  color: #8b949e;
+  margin: 1rem 0;
+}
+.paper-content code {
+  background: #161b22;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #79c0ff;
+}
+.paper-content pre {
+  background: #161b22;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1rem 0;
+  border: 1px solid #21262d;
+}
+.paper-content pre code {
+  padding: 0;
+  background: none;
+}
+.paper-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+.paper-content th {
+  background: #161b22;
+  color: #f0f6fc;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #21262d;
+}
+.paper-content td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #21262d;
+}
+.paper-content tr:nth-child(even) {
+  background: rgba(22, 27, 34, 0.5);
+}

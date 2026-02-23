@@ -11,10 +11,15 @@ const MAX_CANDLES = 5000;
 
 /** All resolutions exposed in the chart UI */
 const PLAYER_RESOLUTIONS = [
-  RESOLUTIONS.TICK,    // 1
-  RESOLUTIONS.HOURLY,  // 13
-  RESOLUTIONS.DAILY,   // 65
-  RESOLUTIONS.WEEKLY,  // 325
+  RESOLUTIONS.ONE_SEC,
+  RESOLUTIONS.ONE_MIN,
+  RESOLUTIONS.TWO_MIN,
+  RESOLUTIONS.FIVE_MIN,
+  RESOLUTIONS.TEN_MIN,
+  RESOLUTIONS.TWENTY_MIN,
+  RESOLUTIONS.ONE_HOUR,
+  RESOLUTIONS.TWO_HOUR,
+  RESOLUTIONS.ONE_DAY,
 ];
 
 /**
@@ -53,7 +58,7 @@ export class ServerBridge {
         store.setCandles(resolution, candles);
 
         // Track the last tick from 1T history (most granular)
-        if (resolution === RESOLUTIONS.TICK && candles.length > 0) {
+        if (resolution === RESOLUTIONS.ONE_SEC && candles.length > 0) {
           this.lastHistoryTick = candles[candles.length - 1].time;
           const last = candles[candles.length - 1];
           store.updateTick(last.close, 0, store.bestBid, store.bestAsk, store.shortInterest, store.utilization, 0, 0);

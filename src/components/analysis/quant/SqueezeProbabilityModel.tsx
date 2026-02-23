@@ -61,7 +61,7 @@ export function SqueezeProbabilityModel() {
 
   // 2. Price momentum: detect 3% move in last 20 ticks
   let priceMomentumPct = 0;
-  const tickCandles = candles.get(RESOLUTIONS.TICK);
+  const tickCandles = candles.get(RESOLUTIONS.ONE_SEC);
   if (tickCandles && tickCandles.length >= 20) {
     const recent = tickCandles.slice(-20);
     const startPrice = recent[0].close;

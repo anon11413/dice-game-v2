@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo } from 'react';
-import { useMarketStore } from '../../../store/marketStore';
+import { useMarketStore, EMPTY_CANDLES } from '../../../store/marketStore';
 import { RESOLUTIONS } from '../../../engine/constants';
 import { rsi, macd, bollingerBands, ttmSqueeze } from '../../../engine/aggregation/indicators';
 
@@ -315,7 +315,7 @@ function TtmSqueezeLed({ squeeze }: { squeeze: { momentum: number | null; squeez
 }
 
 export function IndicatorDashboard() {
-  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.TICK) ?? []);
+  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.ONE_SEC) ?? EMPTY_CANDLES);
 
   const computed = useMemo(() => {
     if (candles.length < 2) {

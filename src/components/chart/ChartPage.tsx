@@ -15,7 +15,7 @@ import { useIndicatorStore } from '../../store/indicatorStore';
 import { RESOLUTIONS } from '../../engine/constants';
 
 export function ChartPage() {
-  const [resolution, setResolution] = useState<number>(RESOLUTIONS.TICK);
+  const [resolution, setResolution] = useState<number>(RESOLUTIONS.ONE_MIN);
   const [chartMode, setChartMode] = useState<'candle' | 'line'>('candle');
   const [showTrade, setShowTrade] = useState(false);
   const [activeAsset, setActiveAsset] = useState<'A' | 'B'>('A');

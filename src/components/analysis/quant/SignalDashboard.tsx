@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useDiceStore } from '../../../store/diceStore';
 import { useMarketStore } from '../../../store/marketStore';
 import { useAnalysisStore } from '../../../store/analysisStore';
-import { RESOLUTIONS } from '../../../engine/constants';
+import { TICK_INTERVALS } from '../../../engine/constants';
 
 /** Piecewise kappa estimation */
 function estimateKappaRaw(mean: number, std: number): number {
@@ -69,7 +69,7 @@ export function SignalDashboard() {
 
   // F_t estimation (simplified, drift every 65 ticks)
   tickCountRef.current++;
-  if (tickCountRef.current % RESOLUTIONS.DAILY === 0) {
+  if (tickCountRef.current % TICK_INTERVALS.DAILY === 0) {
     const f = bandMeans[3];
     const F_prev = fEstRef.current;
     let drift = 0;

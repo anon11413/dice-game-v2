@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import { useDiceStore } from '../../../store/diceStore';
 import { useMarketStore } from '../../../store/marketStore';
 import { useAnalysisStore } from '../../../store/analysisStore';
-import { RESOLUTIONS } from '../../../engine/constants';
+import { TICK_INTERVALS } from '../../../engine/constants';
 
 export function FundamentalEstimator() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -27,7 +27,7 @@ export function FundamentalEstimator() {
     tickCountRef.current++;
 
     // F_t drift happens every 65 ticks (DAILY)
-    if (tickCountRef.current % RESOLUTIONS.DAILY === 0) {
+    if (tickCountRef.current % TICK_INTERVALS.DAILY === 0) {
       const f = bandMeans[3]; // band4 mean (index 3)
       const F_prev = fEstRef.current;
       let drift = 0;

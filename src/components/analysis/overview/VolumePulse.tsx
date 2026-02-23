@@ -11,7 +11,7 @@ export function VolumePulse() {
   const lastTimeRef = useRef(0);
 
   const candles = useMarketStore((s) => s.candles);
-  const tickCandles = candles.get(RESOLUTIONS.TICK);
+  const tickCandles = candles.get(RESOLUTIONS.ONE_SEC);
 
   // Extract last 20 volumes
   const volumes = tickCandles

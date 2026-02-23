@@ -8,16 +8,16 @@ import {
   CandlestickSeries,
   LineSeries,
 } from 'lightweight-charts';
-import { useMarketStore } from '../../../store/marketStore';
+import { useMarketStore, EMPTY_CANDLES } from '../../../store/marketStore';
 import { RESOLUTIONS } from '../../../engine/constants';
 import { sma } from '../../../engine/aggregation/indicators';
 import type { OHLCV } from '../../../engine/types';
 
 const RES_CONFIGS = [
-  { key: RESOLUTIONS.TICK, label: '1T (Tick)' },
-  { key: RESOLUTIONS.HOURLY, label: '13T (Hourly)' },
-  { key: RESOLUTIONS.DAILY, label: '65T (Daily)' },
-  { key: RESOLUTIONS.WEEKLY, label: '325T (Weekly)' },
+  { key: RESOLUTIONS.ONE_MIN, label: '1m' },
+  { key: RESOLUTIONS.FIVE_MIN, label: '5m' },
+  { key: RESOLUTIONS.ONE_HOUR, label: '1h' },
+  { key: RESOLUTIONS.ONE_DAY, label: '1D' },
 ];
 
 function determineTrend(candles: OHLCV[]): { label: string; color: string } {
@@ -44,7 +44,7 @@ function MiniChart({ resKey, label }: { resKey: number; label: string }) {
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const smaSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const candles = useMarketStore((s) => s.candles.get(resKey) ?? []);
+  const candles = useMarketStore((s) => s.candles.get(resKey) ?? EMPTY_CANDLES);
 
   const trend = determineTrend(candles);
   const smaValues = useMemo(

@@ -7,7 +7,7 @@ type Direction = 'up' | 'down' | 'flat';
 
 function useDirection(): { direction: Direction; changeOverWindow: number } {
   const candles = useMarketStore((s) => s.candles);
-  const tickCandles = candles.get(RESOLUTIONS.TICK);
+  const tickCandles = candles.get(RESOLUTIONS.ONE_SEC);
 
   return useMemo(() => {
     if (!tickCandles || tickCandles.length < 2) {

@@ -38,7 +38,7 @@ export function ReturnDistribution() {
   const animRef = useRef<number>(0);
 
   const candles = useMarketStore((s) => s.candles);
-  const tickCandles = candles.get(RESOLUTIONS.TICK);
+  const tickCandles = candles.get(RESOLUTIONS.ONE_SEC);
 
   // Compute returns from last 500 tick candles
   const returns = useRef<number[]>([]);

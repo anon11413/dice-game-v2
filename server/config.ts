@@ -9,5 +9,5 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   isProduction: process.env.NODE_ENV === 'production',
   // Engine speed as percentage of full 25 tps (e.g. 25 = 25% = 6.25 tps)
-  engineSpeedPct: parseInt(process.env.ENGINE_SPEED_PCT || '25', 10),
+  engineSpeedPct: parseInt(process.env.ENGINE_SPEED_PCT || '100', 10),
 };

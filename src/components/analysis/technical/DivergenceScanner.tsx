@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useMarketStore } from '../../../store/marketStore';
+import { useMarketStore, EMPTY_CANDLES } from '../../../store/marketStore';
 import { RESOLUTIONS } from '../../../engine/constants';
 import { rsi } from '../../../engine/aggregation/indicators';
 import type { OHLCV } from '../../../engine/types';
@@ -156,7 +156,7 @@ function AlertCard({ alert }: { alert: DivergenceAlert }) {
 }
 
 export function DivergenceScanner() {
-  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.TICK) ?? []);
+  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.ONE_SEC) ?? EMPTY_CANDLES);
   const alerts = useMemo(() => scanDivergences(candles), [candles]);
 
   return (

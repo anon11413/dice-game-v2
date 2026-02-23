@@ -12,7 +12,7 @@ export function PriceSparkline() {
   const price = useMarketStore((s) => s.price);
   const priceChangePct = useMarketStore((s) => s.priceChangePct);
   const candles = useMarketStore((s) => s.candles);
-  const tickCandles = candles.get(RESOLUTIONS.TICK);
+  const tickCandles = candles.get(RESOLUTIONS.ONE_SEC);
 
   // Get last 100 close prices
   const prices = tickCandles

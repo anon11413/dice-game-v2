@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useCallback } from 'react';
-import { useMarketStore } from '../../../store/marketStore';
+import { useMarketStore, EMPTY_CANDLES } from '../../../store/marketStore';
 import { RESOLUTIONS } from '../../../engine/constants';
 import type { OHLCV } from '../../../engine/types';
 
@@ -65,7 +65,7 @@ export function SupportResistanceMap() {
   const animRef = useRef<number>(0);
 
   const bookSnapshot = useMarketStore((s) => s.bookSnapshot);
-  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.TICK) ?? []);
+  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.ONE_SEC) ?? EMPTY_CANDLES);
   const currentPrice = useMarketStore((s) => s.price);
 
   const srLevels = useMemo(() => detectSRLevels(candles), [candles]);

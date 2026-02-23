@@ -143,3 +143,9 @@ body {
 .paper-content tr:nth-child(even) {
   background: rgba(22, 27, 34, 0.5);
 }
+.paper-content img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid #21262d;
+  margin: 1.5rem 0;
+}

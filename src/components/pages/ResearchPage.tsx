@@ -14,7 +14,9 @@ export function ResearchPage() {
       .then((res) => res.text())
       .then((text) => {
         // Strip YAML front matter if present
-        const stripped = text.replace(/^---[\s\S]*?---\s*/, '');
+        let stripped = text.replace(/^---[\s\S]*?---\s*/, '');
+        // Fix image paths: ../paper-assets/ → /paper-assets/
+        stripped = stripped.replace(/\.\.\//g, '/');
         setMarkdown(stripped);
         setLoading(false);
       })

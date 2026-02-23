@@ -98,6 +98,8 @@ For each band, the engine computes:
 
 This two-level statistical structure — 100 noisy column signals plus 1 consensus signal — is central to the model's ability to generate both diverse agent behavior and meaningful state-variable updates.
 
+![Figure 9: DiceStock model architecture. 12,000 d20 dice on a 120×100 grid feed 12 specialized bands, each generating orders submitted to a continuous double-auction limit order book.](../paper-assets/fig9_architecture.png)
+
 ### 3.3 The Limit Order Book
 
 DiceStock implements a continuous double-auction limit order book with:
@@ -233,6 +235,8 @@ Band 5 implements short selling with utilization-dependent borrow costs and a mu
 
 When triggered, the squeeze generates forced market buy orders at a rate of 0.05% of remaining SI per tick for up to 390 ticks, creating a self-reinforcing price spike. A 50-tick cooldown prevents immediate re-triggering.
 
+![Figure 8: Short squeeze episodes. Forced covering by short sellers creates rapid, one-directional price cascades visible as sharp upward spikes.](../paper-assets/fig8_squeeze_events.png)
+
 ### 4.4 Band 6: Market Makers / Liquidity Providers
 
 Band 6 provides continuous two-sided liquidity. Every tick:
@@ -264,6 +268,8 @@ An additional **column disagreement bonus** boosts $\kappa$ when the standard de
 
 **Smoothing:** $\kappa_t = 0.85 \cdot \kappa_{t-1} + 0.15 \cdot \kappa_{\text{raw}}$ (half-life ≈ 5 ticks), creating sticky regimes. Clamped to [0.2, 5.0].
 
+![Figure 6: The volatility multiplier κ_t over 75 simulated years. Regime shifts between calm (κ ≈ 1.0) and stressed (κ > 1.5) periods drive volatility clustering.](../paper-assets/fig6_kappa_timeseries.png)
+
 ### 4.6 Band 8: News/Event Shocks
 
 Band 8 generates rare exogenous shock events analogous to earnings surprises or macroeconomic announcements.
@@ -289,6 +295,8 @@ $$s_t = 0.92 \cdot s_{t-1} + 0.08 \cdot s_{\text{raw}}$$
 The decay factor 0.92 creates a half-life of about 8 ticks, slow enough to prevent whiplash but fast enough to respond to sustained crowd shifts.
 
 **Effects:** Sentiment > 0.65 amplifies bullish conviction in Bands 1–3 by up to 1.7×. Sentiment < 0.35 amplifies bearish conviction. Sentiment > 0.57 is one of the four squeeze conditions.
+
+![Figure 7: Crowd sentiment s_t evolution. The exponential smoothing (decay = 0.92) creates slow drifts in market mood, with the range 0.42–0.59 reflecting the tension between column-mean extremes and the smoothing filter.](../paper-assets/fig7_sentiment_timeseries.png)
 
 ### 4.8 Band 10: Meta-Regime
 
@@ -412,7 +420,9 @@ The market price exhibits realistic-looking dynamics across multiple time scales
 
 The price tracks the fundamental value over multi-year horizons while exhibiting substantial short-term deviations. Extended bear markets, rallies, and sideways consolidations all appear naturally.
 
-*[See Figure 1: Price trajectory with fundamental value overlay]*
+![Figure 1: 75-year price trajectory with fundamental value overlay. The market price (blue) tracks fundamental value (orange) over multi-year horizons while exhibiting substantial short-term deviations.](../paper-assets/fig1_price_trajectory.png)
+
+![Figure 11: Multi-band activity timeline showing order generation across all 12 bands at different cadences. Scalpers (Band 1) fire every tick; position traders (Band 3) and value agents (Band 4) fire every 65 ticks.](../paper-assets/fig11_band_timeline.png)
 
 ### 6.3 Return Distribution
 
@@ -431,8 +441,9 @@ The excess kurtosis of 13.91 confirms strongly leptokurtic returns — the distr
 
 The annualized volatility of 14.9% is strikingly realistic, falling within the typical range for equity indices (15–20% for the S&P 500). This represents a major improvement over v1 and validates the PRICE_SCALE compression mechanism.
 
-*[See Figure 2: Return distribution vs. normal overlay]*
-*[See Figure 3: QQ plot showing tail departure]*
+![Figure 2: Daily log return distribution (blue) versus normal overlay (dashed). The heavy tails of DiceStock returns are clearly visible.](../paper-assets/fig2_return_distribution.png)
+
+![Figure 3: QQ plot of returns against the normal distribution. Tail departure confirms excess kurtosis of 13.9.](../paper-assets/fig3_qq_plot.png)
 
 ### 6.4 Volatility Dynamics
 
@@ -449,8 +460,7 @@ The autocorrelation of absolute returns decays slowly — a hallmark of long mem
 
 The volatility multiplier $\kappa_t$ ranges from 0.89 to 1.91 with mean 1.11 and standard deviation 0.107. It exhibits persistent regimes: extended periods of elevated volatility interspersed with calm periods.
 
-*[See Figure 4: Volatility clustering ACF]*
-*[See Figure 6: Kappa time series]*
+![Figure 4: Autocorrelation of absolute returns out to lag 200, showing the slow power-law decay characteristic of volatility clustering.](../paper-assets/fig4_vol_clustering_acf.png)
 
 ### 6.5 Microstructure
 
@@ -508,11 +518,17 @@ Fat tails in DiceStock arise from three mechanisms:
 2. **Event shocks**: Rare but impactful events create outlier returns.
 3. **Squeeze episodes**: Forced covering generates one-directional cascades.
 
+![Figure 2: Daily log return distribution (blue) versus normal overlay (dashed). The heavy tails of DiceStock returns are clearly visible.](../paper-assets/fig2_return_distribution.png)
+
+![Figure 3: QQ plot of returns against the normal distribution. Tail departure confirms excess kurtosis of 13.9.](../paper-assets/fig3_qq_plot.png)
+
 ### 7.3 Volatility Clustering (PASS)
 
 The ACF of absolute returns at lag 1 is 0.075, comfortably exceeding the 0.05 threshold and falling within the typical equity range of 0.05–0.30.
 
 Volatility clustering emerges from the smoothing of $\kappa_t$ (half-life ≈ 5 ticks) and the regime persistence created by Band 10's trend/reversal parameters. When $\kappa_t$ is elevated, all agents generate larger orders with higher market-order probability, perpetuating high volatility.
+
+![Figure 4: Autocorrelation of absolute returns out to lag 200, showing the slow power-law decay characteristic of volatility clustering.](../paper-assets/fig4_vol_clustering_acf.png)
 
 ### 7.4 Long Memory in Volatility (PASS)
 
@@ -527,6 +543,8 @@ The lag-1 return autocorrelation is −0.068, exceeding the ±0.05 threshold. Th
 **Root cause:** Market makers (Band 6) refresh the entire book every tick, creating mechanical bid-ask bounce. When price moves up on a market buy, the next tick's midpoint shifts upward, but the aggressive MM refresh can cause a slight pullback as the new spread straddles the new price. This creates weak negative autocorrelation.
 
 This is a known artifact of ABMs with active market making. The value of −0.068 is a significant improvement over prior versions (−0.125) and may be further reducible by tuning MM cadence or spread width.
+
+![Figure 5: Autocorrelation of raw returns. The lag-1 value of −0.068 (slightly outside the ±0.05 threshold) reflects market-maker bid-ask bounce. All other lags are near zero.](../paper-assets/fig5_return_acf.png)
 
 ### 7.6 Volume-Volatility Correlation (PASS)
 
@@ -550,7 +568,7 @@ This emerges naturally: when $\kappa_t$ is high, all agents generate larger orde
 | Price discovery | PASS (trivially) | PASS |
 | **Score** | **~2/10** | **9/10** |
 
-*[See Figure 10: Scorecard comparison chart]*
+![Figure 10: Stylized facts scorecard comparison between v1 (pre-fix) and v2 (current). The model improved from ~2/10 to 9/10 after fixing the band-mean vs column-mean bug and adding Bands 11–12.](../paper-assets/fig10_scorecard_comparison.png)
 
 ---
 
@@ -605,6 +623,10 @@ We run 30 independent simulations (seeds 1–30) of 15 simulated years each (1.4
 
 The remarkably low cross-seed variance in kappa (std = 0.002) and annualized volatility (std = 0.9%) demonstrates that the model's core dynamics are structurally determined rather than noise-dependent. The Hurst exponent is tightly clustered around 0.53 (std = 0.022), consistently near the 0.5 random-walk benchmark.
 
+![Figure 12: Multi-seed scorecard results. Left: Score distribution across 30 seeds (mean 7.8/10). Right: Pass rate per stylized fact — fat tails, kappa dynamics, sentiment, events, and price discovery pass in 100% of seeds.](../paper-assets/fig12_multiseed_scores.png)
+
+![Figure 14: Distribution of key metrics across 30 seeds (box plots) with S&P 500 reference values (red dashed lines). Annualized volatility and Hurst exponent closely bracket real-market values.](../paper-assets/fig14_multiseed_metrics.png)
+
 ### 8.2 Sensitivity Analysis (Band Ablation)
 
 To identify which model components are load-bearing versus decorative, we systematically disable key mechanisms one at a time via configuration overrides and re-run a 10-year simulation (seed 42) for each ablation.
@@ -646,6 +668,8 @@ To identify which model components are load-bearing versus decorative, we system
   - *PRICE_SCALE compression*: Score unchanged but vol explodes (20.4% → 95.1%) and kurtosis collapses. This confirms PRICE_SCALE is essential for realistic magnitudes but the scorecard thresholds are loose enough to still pass.
 
 **Interpretation.** The trend/OU process (Band 11) and PRICE_SCALE compression are the two most impactful design choices. Band 11 provides the fundamental value drift that drives realistic volatility levels and volume-volatility correlation. PRICE_SCALE compresses raw dice-driven moves to realistic equity-scale returns. Without either, the model still produces some stylized facts (fat tails persist across all configurations) but loses quantitative realism.
+
+![Figure 13: Band ablation sensitivity analysis. Each row is a configuration with one mechanism disabled. Green = PASS, red = FAIL. The trend/OU process (Band 11) and PRICE_SCALE compression show the largest metric impacts.](../paper-assets/fig13_sensitivity_heatmap.png)
 
 ### 8.3 Empirical Comparison: DiceStock vs S&P 500
 
@@ -689,7 +713,13 @@ DiceStock's volatility clustering is weaker than the S&P 500's (ACF-1 of 0.075 v
 
 The single point of disagreement — return autocorrelation — is the same systematic issue identified in Section 7.5: market maker bid-ask bounce creates weak negative serial correlation.
 
-*[See Figures 12–15: Return comparison histogram, QQ plots, ACF comparison, metrics table]*
+![Figure 15: Return distribution comparison — DiceStock (blue) vs S&P 500 (orange). Both distributions show heavy tails relative to the normal overlay.](../paper-assets/fig_real_return_comparison.png)
+
+![Figure 16: QQ plot comparison. Both DiceStock and S&P 500 returns depart dramatically from normality, though DiceStock shows modestly heavier tails.](../paper-assets/fig_real_qq_comparison.png)
+
+![Figure 17: Autocorrelation function comparison. Both series show positive ACF of absolute returns (volatility clustering), though the S&P 500 exhibits stronger persistence.](../paper-assets/fig_real_acf_comparison.png)
+
+![Figure 18: Head-to-head metrics comparison table. Annualized volatility (14.9% vs 15.8%) and Hurst exponents (0.540 vs 0.541) are strikingly similar despite zero calibration to empirical data.](../paper-assets/fig_real_metrics_table.png)
 
 ---
 

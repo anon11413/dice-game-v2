@@ -28,7 +28,7 @@ export function RsiPane({ resolution, visibleRange }: Props) {
     const chart = createChart(containerRef.current, {
       layout: { background: { type: ColorType.Solid, color: '#0a0e17' }, textColor: '#6b7280', fontSize: 10 },
       grid: { vertLines: { color: '#1c2333' }, horzLines: { color: '#1c2333' } },
-      rightPriceScale: { borderColor: '#1c2333', scaleMargins: { top: 0.1, bottom: 0.1 } },
+      rightPriceScale: { borderColor: '#1c2333', minimumWidth: 60, scaleMargins: { top: 0.1, bottom: 0.1 } },
       timeScale: { visible: false },
       crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
       width: containerRef.current.clientWidth,
@@ -56,13 +56,14 @@ export function RsiPane({ resolution, visibleRange }: Props) {
   useEffect(() => {
     if (!seriesRef.current || !candles || candles.length === 0) return;
     const rsiValues = rsi(candles, 14);
-    const data = candles
-      .map((c: OHLCV, i: number) => rsiValues[i] !== null
+    // Include all timestamps — use whitespace data points for null lookback period
+    // to keep logical indices aligned with the main chart
+    const data: ({ time: Time; value: number } | { time: Time })[] = candles.map(
+      (c: OHLCV, i: number) => rsiValues[i] !== null
         ? { time: c.time as Time, value: rsiValues[i]! }
-        : null
-      )
-      .filter(Boolean) as { time: Time; value: number }[];
-    seriesRef.current.setData(data);
+        : { time: c.time as Time }  // whitespace point (creates gap in line)
+    );
+    seriesRef.current.setData(data as any);
   }, [candles]);
 
   // Sync time scale with main chart

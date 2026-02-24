@@ -84,6 +84,7 @@ export function PriceChart({ resolution, mode, activeAsset = 'A', onVisibleRange
       },
       rightPriceScale: {
         borderColor: '#1c2333',
+        minimumWidth: 60,
       },
       timeScale: {
         borderColor: '#1c2333',

@@ -31,7 +31,7 @@ export function MacdPane({ resolution, visibleRange }: Props) {
     const chart = createChart(containerRef.current, {
       layout: { background: { type: ColorType.Solid, color: '#0a0e17' }, textColor: '#6b7280', fontSize: 10 },
       grid: { vertLines: { color: '#1c2333' }, horzLines: { color: '#1c2333' } },
-      rightPriceScale: { borderColor: '#1c2333' },
+      rightPriceScale: { borderColor: '#1c2333', minimumWidth: 60 },
       timeScale: { visible: false },
       crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
       width: containerRef.current.clientWidth,
@@ -70,23 +70,27 @@ export function MacdPane({ resolution, visibleRange }: Props) {
     if (!macdLineRef.current || !signalLineRef.current || !histogramRef.current || !candles || candles.length === 0) return;
     const macdData = macd(candles, 12, 26, 9);
 
-    const macdLine = candles
-      .map((c: OHLCV, i: number) => macdData[i].macd !== null ? { time: c.time as Time, value: macdData[i].macd! } : null)
-      .filter(Boolean) as { time: Time; value: number }[];
+    // Include all timestamps to keep logical indices aligned with main chart
+    // Use whitespace data points for line series, zero+transparent for histogram
+    const macdLine: ({ time: Time; value: number } | { time: Time })[] = candles.map(
+      (c: OHLCV, i: number) => macdData[i].macd !== null
+        ? { time: c.time as Time, value: macdData[i].macd! }
+        : { time: c.time as Time }
+    );
 
-    const signalLine = candles
-      .map((c: OHLCV, i: number) => macdData[i].signal !== null ? { time: c.time as Time, value: macdData[i].signal! } : null)
-      .filter(Boolean) as { time: Time; value: number }[];
+    const signalLine: ({ time: Time; value: number } | { time: Time })[] = candles.map(
+      (c: OHLCV, i: number) => macdData[i].signal !== null
+        ? { time: c.time as Time, value: macdData[i].signal! }
+        : { time: c.time as Time }
+    );
 
-    const histogram = candles
-      .map((c: OHLCV, i: number) => macdData[i].histogram !== null
-        ? { time: c.time as Time, value: macdData[i].histogram!, color: macdData[i].histogram! >= 0 ? '#22c55e88' : '#ef444488' }
-        : null
-      )
-      .filter(Boolean) as { time: Time; value: number; color: string }[];
+    const histogram = candles.map((c: OHLCV, i: number) => macdData[i].histogram !== null
+      ? { time: c.time as Time, value: macdData[i].histogram!, color: macdData[i].histogram! >= 0 ? '#22c55e88' : '#ef444488' }
+      : { time: c.time as Time, value: 0, color: 'transparent' }
+    );
 
-    macdLineRef.current.setData(macdLine);
-    signalLineRef.current.setData(signalLine);
+    macdLineRef.current.setData(macdLine as any);
+    signalLineRef.current.setData(signalLine as any);
     histogramRef.current.setData(histogram);
   }, [candles]);
 

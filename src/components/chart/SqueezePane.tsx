@@ -28,7 +28,7 @@ export function SqueezePane({ resolution, visibleRange }: Props) {
     const chart = createChart(containerRef.current, {
       layout: { background: { type: ColorType.Solid, color: '#0a0e17' }, textColor: '#6b7280', fontSize: 10 },
       grid: { vertLines: { color: '#1c2333' }, horzLines: { color: '#1c2333' } },
-      rightPriceScale: { borderColor: '#1c2333' },
+      rightPriceScale: { borderColor: '#1c2333', minimumWidth: 60 },
       timeScale: { visible: false },
       crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
       width: containerRef.current.clientWidth,
@@ -55,20 +55,21 @@ export function SqueezePane({ resolution, visibleRange }: Props) {
     if (!seriesRef.current || !candles || candles.length === 0) return;
     const squeezeData = ttmSqueeze(candles, 20);
 
-    const data = candles
-      .map((c: OHLCV, i: number) => {
-        const d = squeezeData[i];
-        if (d.momentum === null) return null;
-        // Color: squeeze on = red dots (dark), squeeze off = green momentum bars
-        let color: string;
-        if (d.squeezeOn) {
-          color = d.momentum >= 0 ? '#14532d' : '#7f1d1d'; // muted (squeeze on)
-        } else {
-          color = d.momentum >= 0 ? '#22c55e' : '#ef4444'; // bright (squeeze off)
-        }
-        return { time: c.time as Time, value: d.momentum, color };
-      })
-      .filter(Boolean) as { time: Time; value: number; color: string }[];
+    const data = candles.map((c: OHLCV, i: number) => {
+      const d = squeezeData[i];
+      if (d.momentum === null) {
+        // Pad lookback period with zero-value transparent bars to keep logical indices aligned
+        return { time: c.time as Time, value: 0, color: 'transparent' };
+      }
+      // Color: squeeze on = red dots (dark), squeeze off = green momentum bars
+      let color: string;
+      if (d.squeezeOn) {
+        color = d.momentum >= 0 ? '#14532d' : '#7f1d1d'; // muted (squeeze on)
+      } else {
+        color = d.momentum >= 0 ? '#22c55e' : '#ef4444'; // bright (squeeze off)
+      }
+      return { time: c.time as Time, value: d.momentum, color };
+    });
 
     seriesRef.current.setData(data);
   }, [candles]);

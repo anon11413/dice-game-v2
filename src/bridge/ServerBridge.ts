@@ -111,14 +111,11 @@ export class ServerBridge {
       const grid = new Uint8Array(data.diceGrid);
       useDiceStore.getState().updateDice(grid, data.bandMeans, data.bandStds);
 
-      // Update market store with book/SI data
+      // Update market store with book/SI data (don't touch price — avoids double-scaling flicker)
       const ms = useMarketStore.getState();
-      ms.updateTick(
-        ms.price, 0,
+      ms.updateInfo(
         data.bookSnapshot.bestBid, data.bookSnapshot.bestAsk,
-        data.shortInterest, data.utilization,
-        data.bookSnapshot.bids.reduce((sum: number, l: any) => sum + l.totalSize, 0),
-        data.bookSnapshot.asks.reduce((sum: number, l: any) => sum + l.totalSize, 0)
+        data.shortInterest, data.utilization
       );
       ms.setBookSnapshot(data.bookSnapshot);
 

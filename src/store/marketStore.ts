@@ -43,6 +43,7 @@ interface MarketState {
   prevPrice: number;
 
   updateTick: (price: number, volume: number, bestBid: number | null, bestAsk: number | null, shortInterest: number, utilization: number, bookDepthBid5: number, bookDepthAsk5: number) => void;
+  updateInfo: (bestBid: number | null, bestAsk: number | null, shortInterest: number, utilization: number) => void;
   setCandles: (resolution: number, data: OHLCV[]) => void;
   setBookSnapshot: (snapshot: BookSnapshot) => void;
 }
@@ -78,6 +79,19 @@ export const useMarketStore = create<MarketState>((set, get) => ({
       priceChange: change,
       priceChangePct: changePct,
       volume,
+      bestBid: scaledBid,
+      bestAsk: scaledAsk,
+      spread: scaledBid !== null && scaledAsk !== null ? scaledAsk - scaledBid : null,
+      shortInterest,
+      utilization,
+    });
+  },
+
+  updateInfo: (bestBid, bestAsk, shortInterest, utilization) => {
+    const s = useSimulationStore.getState().priceScale;
+    const scaledBid = bestBid !== null ? scalePrice(bestBid, s) : null;
+    const scaledAsk = bestAsk !== null ? scalePrice(bestAsk, s) : null;
+    set({
       bestBid: scaledBid,
       bestAsk: scaledAsk,
       spread: scaledBid !== null && scaledAsk !== null ? scaledAsk - scaledBid : null,

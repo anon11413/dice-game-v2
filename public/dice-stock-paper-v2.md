@@ -1,10 +1,12 @@
 ---
 title: "DiceStock: A Dice-Driven Agent-Based Model That Reproduces Stylized Facts of Financial Markets"
-author: ""
+author: "Gregory Ashaun Nelson"
 date: "February 2026"
 ---
 
 # DiceStock: A Dice-Driven Agent-Based Model That Reproduces Stylized Facts of Financial Markets
+
+**Gregory Ashaun Nelson**
 
 **Working Paper — February 2026**
 

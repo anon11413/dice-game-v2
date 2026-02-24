@@ -4,12 +4,13 @@ interface DiceState {
   grid: Uint8Array | null;
   bandMeans: number[];
   bandStds: number[];
-  bandMeansHistory: number[][];   // [bandIndex][tick] — last 200 values per band
+  bandMeansHistory: number[][];   // [bandIndex][update] — last 10 min of values per band
 
   updateDice: (grid: Uint8Array, means: number[], stds: number[]) => void;
 }
 
-const MAX_HISTORY = 200;
+// 10 minutes = 3,250 ticks; analysis updates every 5 ticks → 650 entries
+const MAX_HISTORY = 650;
 
 export const useDiceStore = create<DiceState>((set, get) => ({
   grid: null,

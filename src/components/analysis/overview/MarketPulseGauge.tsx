@@ -55,17 +55,28 @@ function getScoreColor(score: number): string {
   return LABEL_COLORS[4];
 }
 
+// 10 min = 3,250 ticks; analysis updates every 5 ticks → 650 entries
+const SCORE_HISTORY_LEN = 650;
+
 export function MarketPulseGauge() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ w: 300, h: 180 });
   const dirtyRef = useRef(true);
   const animRef = useRef<number>(0);
+  const scoreHistoryRef = useRef<number[]>([]);
 
   const bandMeans = useDiceStore((s) => s.bandMeans);
   const bookSnapshot = useMarketStore((s) => s.bookSnapshot);
 
-  const score = computeScore(bandMeans, bookSnapshot);
+  const instantScore = computeScore(bandMeans, bookSnapshot);
+
+  // Accumulate score history and compute 10-min average
+  const hist = scoreHistoryRef.current;
+  hist.push(instantScore);
+  if (hist.length > SCORE_HISTORY_LEN) hist.shift();
+  const score = hist.reduce((sum, v) => sum + v, 0) / hist.length;
+
   const label = getScoreLabel(score);
   const color = getScoreColor(score);
 
@@ -229,7 +240,7 @@ export function MarketPulseGauge() {
 
   return (
     <div className="bg-[#0d1117] rounded-lg p-3 border border-gray-800">
-      <h3 className="text-sm font-medium text-gray-300 mb-1">Market Pulse</h3>
+      <h3 className="text-sm font-medium text-gray-300 mb-1">Market Pulse <span className="text-gray-500 font-normal">(10 min avg)</span></h3>
       <div ref={containerRef} className="w-full">
         <canvas ref={canvasRef} className="w-full" />
       </div>

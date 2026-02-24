@@ -247,7 +247,7 @@ export function RegimeEstimator() {
 
       {/* Sparkline */}
       <div className="mt-1">
-        <span className="text-[10px] text-gray-500">Trend Persistence (200 ticks)</span>
+        <span className="text-[10px] text-gray-500">Trend Persistence (10 min)</span>
         <canvas ref={sparkRef} className="w-full" style={{ height: 40 }} />
       </div>
     </div>

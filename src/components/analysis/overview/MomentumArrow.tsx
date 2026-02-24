@@ -7,23 +7,24 @@ type Direction = 'up' | 'down' | 'flat';
 
 function useDirection(): { direction: Direction; changeOverWindow: number } {
   const candles = useMarketStore((s) => s.candles);
-  const tickCandles = candles.get(RESOLUTIONS.ONE_SEC);
+  const tenMinCandles = candles.get(RESOLUTIONS.TEN_MIN);
 
   return useMemo(() => {
-    if (!tickCandles || tickCandles.length < 2) {
+    if (!tenMinCandles || tenMinCandles.length < 2) {
       return { direction: 'flat', changeOverWindow: 0 };
     }
-    const window = Math.min(5, tickCandles.length);
-    const recent = tickCandles.slice(-window);
-    const startPrice = recent[0].open;
-    const endPrice = recent[recent.length - 1].close;
+    // Use last candle for 10-minute momentum
+    const prev = tenMinCandles[tenMinCandles.length - 2];
+    const curr = tenMinCandles[tenMinCandles.length - 1];
+    const startPrice = prev.open;
+    const endPrice = curr.close;
     const change = endPrice - startPrice;
     const pct = startPrice !== 0 ? (change / startPrice) * 100 : 0;
 
     if (pct > 0.1) return { direction: 'up', changeOverWindow: pct };
     if (pct < -0.1) return { direction: 'down', changeOverWindow: pct };
     return { direction: 'flat', changeOverWindow: pct };
-  }, [tickCandles]);
+  }, [tenMinCandles]);
 }
 
 const dirConfig = {
@@ -102,7 +103,7 @@ export function MomentumArrow() {
       {/* Details */}
       <div className="flex flex-col items-center gap-0.5 text-xs text-gray-400">
         <span>
-          5-tick: <span className={changeOverWindow >= 0 ? 'text-green-400' : 'text-red-400'}>
+          10 min: <span className={changeOverWindow >= 0 ? 'text-green-400' : 'text-red-400'}>
             {changeOverWindow >= 0 ? '+' : ''}{changeOverWindow.toFixed(2)}%
           </span>
         </span>

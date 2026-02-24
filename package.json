@@ -7,9 +7,9 @@
     "dev": "vite",
     "dev:server": "tsx watch server/index.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
-    "build": "vite build",
+    "build": "vite build && node build-server.mjs",
     "typecheck": "tsc -b",
-    "start": "tsx server/index.ts",
+    "start": "node dist-server/index.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -26,7 +26,6 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.6.0",
     "remark-gfm": "^4.0.1",
-    "tsx": "^4.21.0",
     "uuid": "^13.0.0",
     "ws": "^8.19.0",
     "zustand": "^5.0.0"
@@ -47,6 +46,7 @@
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.2.1",
+    "tsx": "^4.21.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

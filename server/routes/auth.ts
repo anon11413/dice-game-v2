@@ -24,14 +24,14 @@ router.post('/register', async (req, res) => {
       return;
     }
 
-    const existing = await findByUsername(username);
+    const existing = findByUsername(username);
     if (existing) {
       res.status(409).json({ error: 'Username already taken' });
       return;
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await createUser(username, passwordHash);
+    const user = createUser(username, passwordHash);
     const token = createToken(user.id, user.username);
 
     res.status(201).json({ token, user: toPublicUser(user) });
@@ -50,7 +50,7 @@ router.post('/login', async (req, res) => {
       return;
     }
 
-    const user = await findByUsername(username);
+    const user = findByUsername(username);
     if (!user) {
       res.status(401).json({ error: 'Invalid credentials' });
       return;

@@ -1,16 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { pool } from './pool.js';
+import { db } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export async function migrate(): Promise<void> {
+export function migrate(): void {
   const schemaPath = path.join(__dirname, 'schema.sql');
   const sql = fs.readFileSync(schemaPath, 'utf-8');
 
   try {
-    await pool.query(sql);
+    db.exec(sql);
     console.log('[DB] Schema migration complete');
   } catch (err: any) {
     console.error('[DB] Migration failed:', err.message);

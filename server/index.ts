@@ -5,9 +5,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { config } from './config.js';
-import { pool } from './db/pool.js';
+import { db } from './db/db.js';
 import { migrate } from './db/migrate.js';
-import { getPriceState, updatePriceState, insertCandle } from './db/queries/prices.js';
+import { insertCandle } from './db/queries/prices.js';
 import { ServerEngine } from './engine/ServerEngine.js';
 import { initWebSocket, broadcastCandle, broadcastAnalysis, setCurrentPriceForWS } from './ws/broadcast.js';
 
@@ -15,59 +15,38 @@ import authRoutes from './routes/auth.js';
 import pricesRoutes, { setCurrentPrice, setGetCandles } from './routes/prices.js';
 import tradingRoutes, { setGetCurrentPrice } from './routes/trading.js';
 import userRoutes from './routes/user.js';
+import exportRoutes, { setExportEngineRef } from './routes/export.js';
+import adminRoutes, { setEngineRef } from './routes/admin.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // How often to persist to DB (every 390 ticks = 1 sim "day")
 const DB_PERSIST_INTERVAL = 390;
 
-// Timeout helper — prevents dead DB host from blocking startup via TCP hang
-const DB_TIMEOUT = 8000;
-function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${DB_TIMEOUT}ms`)), DB_TIMEOUT)
-    ),
-  ]);
-}
-
 async function main() {
-  // 1. Run database migrations (with timeout to prevent dead-host TCP hang)
+  // 1. Run database migrations (SQLite — always local, no timeout needed)
   try {
-    await withTimeout(migrate(), 'DB migration');
+    migrate();
   } catch (err: any) {
-    console.error(`[Server] DB migration failed — running without database: ${err.message}`);
-    console.error('[Server] API endpoints requiring DB will fail');
+    console.error(`[Server] DB migration failed: ${err.message}`);
+    process.exit(1);
   }
 
-  // 2. Load price state from DB (with timeout)
-  let seed = 42;
-  let tickCount = 0;
-  try {
-    const state = await withTimeout(getPriceState(), 'getPriceState');
-    if (state) {
-      seed = state.last_seed;
-      tickCount = state.tick_count;
-      console.log(`[Server] Resuming from seed=${seed}, tickCount=${tickCount}, price=$${parseFloat(state.last_price).toFixed(2)}`);
-    }
-  } catch (err: any) {
-    console.log(`[Server] No price state found, starting fresh: ${err.message}`);
-  }
-
-  // 3. Create and initialize engine
+  // 2. Create engine — always fresh start from seed, no replay
+  const seed = config.seed;
   const engine = new ServerEngine(seed);
-  if (tickCount > 0) {
-    engine.replayToTick(tickCount);
-  }
+  console.log(`[Server] Fresh start with seed=${seed}`);
 
   // Wire up current price accessor for trade execution
   setCurrentPrice(engine.getPrice());
   setGetCurrentPrice(() => engine.getPrice());
   // Wire up candle accessor for history endpoint (serves from engine memory)
   setGetCandles((resolution) => engine.getCandles(resolution));
+  // Wire up engine ref for admin reset and CSV export
+  setEngineRef(engine);
+  setExportEngineRef(engine);
 
-  // 4. Set up Express
+  // 3. Set up Express
   const app = express();
   const httpServer = createServer(app);
 
@@ -79,6 +58,8 @@ async function main() {
   app.use('/api', pricesRoutes);
   app.use('/api', tradingRoutes);
   app.use('/api', userRoutes);
+  app.use('/api', exportRoutes);
+  app.use('/api', adminRoutes);
 
   // Health check
   app.get('/api/health', (_req, res) => {
@@ -100,12 +81,17 @@ async function main() {
     });
   }
 
-  // 5. Initialize WebSocket
+  // 4. Initialize WebSocket
   initWebSocket(httpServer);
 
-  // 6. Start engine loop — 25 ticks/sec, DB persistence every 390 ticks
+  // 5. Start listening FIRST so Render detects the port immediately
+  httpServer.listen(config.port, '0.0.0.0', () => {
+    console.log(`[Server] DiceStock running on port ${config.port}`);
+    console.log(`[Server] Engine price: $${engine.getPrice().toFixed(2)}`);
+  });
+
+  // 6. Start engine loop — configurable ticks/sec, DB persistence every 390 ticks
   let ticksSinceLastPersist = 0;
-  let dbWriteInProgress = false;
 
   // Accumulate an aggregate candle for DB persistence (390-tick OHLCV)
   let aggOpen = 0;
@@ -140,33 +126,19 @@ async function main() {
     aggClose = candle.close;
     aggVolume += candle.volume;
 
-    // Persist to DB every 390 ticks (don't await — fire and forget with error logging)
-    if (ticksSinceLastPersist >= DB_PERSIST_INTERVAL && !dbWriteInProgress) {
-      dbWriteInProgress = true;
-      const saveOpen = aggOpen;
-      const saveHigh = aggHigh;
-      const saveLow = aggLow;
-      const saveClose = aggClose;
-      const saveVolume = aggVolume;
-      const saveTickCount = currentTickCount;
+    // Persist candle to DB every 390 ticks
+    if (ticksSinceLastPersist >= DB_PERSIST_INTERVAL) {
+      try {
+        insertCandle(aggOpen, aggHigh, aggLow, aggClose, aggVolume);
+      } catch (err: any) {
+        console.error('[Server] Failed to persist candle:', err.message);
+      }
 
       // Reset accumulators
       ticksSinceLastPersist = 0;
       aggHigh = -Infinity;
       aggLow = Infinity;
       aggVolume = 0;
-
-      // Fire-and-forget DB write
-      (async () => {
-        try {
-          await insertCandle(saveOpen, saveHigh, saveLow, saveClose, saveVolume);
-          await updatePriceState(currentPrice, seed, saveTickCount);
-        } catch (err: any) {
-          console.error('[Server] Failed to persist candle:', err.message);
-        } finally {
-          dbWriteInProgress = false;
-        }
-      })();
 
       // Log every ~10 persist cycles
       if (currentTickCount % (DB_PERSIST_INTERVAL * 10) < DB_PERSIST_INTERVAL) {
@@ -179,21 +151,11 @@ async function main() {
     }
   });
 
-  // 7. Start listening
-  httpServer.listen(config.port, () => {
-    console.log(`[Server] DiceStock running on port ${config.port}`);
-    console.log(`[Server] Engine price: $${engine.getPrice().toFixed(2)}`);
-  });
-
   // Graceful shutdown
-  const shutdown = async () => {
+  const shutdown = () => {
     console.log('[Server] Shutting down...');
     engine.stop();
-    try {
-      await updatePriceState(engine.getPrice(), seed, engine.getTickCount());
-      console.log('[Server] Final state saved');
-    } catch {}
-    await pool.end();
+    db.close();
     process.exit(0);
   };
 

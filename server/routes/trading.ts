@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { pool } from '../db/pool.js';
+import { db } from '../db/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { toPublicUser, type UserRow } from '../db/queries/users.js';
 import type { TradeRow } from '../db/queries/trades.js';
@@ -37,104 +37,89 @@ router.post('/trade', requireAuth, async (req, res) => {
   const price = asset === 'A' ? priceA : priceB;
   const total = parseFloat((price * qty).toFixed(2));
 
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    const executeTrade = db.transaction(() => {
+      const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user!.userId) as UserRow | undefined;
+      if (!user) {
+        return { error: 'User not found', status: 404 };
+      }
 
-    // Lock the user row
-    const { rows } = await client.query<UserRow>(
-      'SELECT * FROM users WHERE id = $1 FOR UPDATE',
-      [req.user!.userId]
-    );
-    const user = rows[0];
-    if (!user) {
-      await client.query('ROLLBACK');
-      res.status(404).json({ error: 'User not found' });
+      const cash = user.cash;
+      const shares = asset === 'A' ? user.shares_a : user.shares_b;
+      const avgEntry = asset === 'A' ? user.avg_entry_a : user.avg_entry_b;
+      const totalCost = asset === 'A' ? user.total_cost_a : user.total_cost_b;
+
+      if (side === 'BUY') {
+        if (cash < total) {
+          return { error: `Insufficient cash. Need $${total.toFixed(2)}, have $${cash.toFixed(2)}`, status: 400 };
+        }
+
+        const newShares = shares + qty;
+        const newTotalCost = totalCost + total;
+        const newAvgEntry = newShares > 0 ? newTotalCost / newShares : 0;
+
+        const sharesCol = asset === 'A' ? 'shares_a' : 'shares_b';
+        const avgCol = asset === 'A' ? 'avg_entry_a' : 'avg_entry_b';
+        const costCol = asset === 'A' ? 'total_cost_a' : 'total_cost_b';
+
+        db.prepare(
+          `UPDATE users SET cash = cash - ?, ${sharesCol} = ?, ${avgCol} = ?, ${costCol} = ? WHERE id = ?`
+        ).run(total, newShares, newAvgEntry, newTotalCost, req.user!.userId);
+      } else {
+        // SELL
+        if (shares < qty) {
+          return { error: `Insufficient shares. Have ${shares}, trying to sell ${qty}`, status: 400 };
+        }
+
+        const newShares = shares - qty;
+        const costReduction = shares > 0 ? (qty / shares) * totalCost : 0;
+        const newTotalCost = Math.max(0, totalCost - costReduction);
+        const newAvgEntry = newShares > 0 ? newTotalCost / newShares : 0;
+
+        const sharesCol = asset === 'A' ? 'shares_a' : 'shares_b';
+        const avgCol = asset === 'A' ? 'avg_entry_a' : 'avg_entry_b';
+        const costCol = asset === 'A' ? 'total_cost_a' : 'total_cost_b';
+
+        db.prepare(
+          `UPDATE users SET cash = cash + ?, ${sharesCol} = ?, ${avgCol} = ?, ${costCol} = ? WHERE id = ?`
+        ).run(total, newShares, newAvgEntry, newTotalCost, req.user!.userId);
+      }
+
+      // Record the trade
+      const tradeInfo = db.prepare(
+        `INSERT INTO trades (user_id, asset, side, quantity, price, total)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).run(req.user!.userId, asset, side, qty, price, total);
+      const trade = db.prepare('SELECT * FROM trades WHERE id = ?').get(tradeInfo.lastInsertRowid) as TradeRow;
+
+      // Fetch updated user
+      const updatedUser = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user!.userId) as UserRow;
+
+      return { trade, portfolio: toPublicUser(updatedUser) };
+    });
+
+    const result = executeTrade();
+
+    if ('error' in result) {
+      res.status(result.status).json({ error: result.error });
       return;
     }
 
-    const cash = parseFloat(user.cash);
-    const shares = asset === 'A' ? user.shares_a : user.shares_b;
-    const avgEntry = parseFloat(asset === 'A' ? user.avg_entry_a : user.avg_entry_b);
-    const totalCost = parseFloat(asset === 'A' ? user.total_cost_a : user.total_cost_b);
-
-    if (side === 'BUY') {
-      if (cash < total) {
-        await client.query('ROLLBACK');
-        res.status(400).json({ error: `Insufficient cash. Need $${total.toFixed(2)}, have $${cash.toFixed(2)}` });
-        return;
-      }
-
-      const newShares = shares + qty;
-      const newTotalCost = totalCost + total;
-      const newAvgEntry = newShares > 0 ? newTotalCost / newShares : 0;
-
-      const sharesCol = asset === 'A' ? 'shares_a' : 'shares_b';
-      const avgCol = asset === 'A' ? 'avg_entry_a' : 'avg_entry_b';
-      const costCol = asset === 'A' ? 'total_cost_a' : 'total_cost_b';
-
-      await client.query(
-        `UPDATE users SET cash = cash - $1, ${sharesCol} = $2, ${avgCol} = $3, ${costCol} = $4 WHERE id = $5`,
-        [total, newShares, newAvgEntry, newTotalCost, req.user!.userId]
-      );
-    } else {
-      // SELL
-      if (shares < qty) {
-        await client.query('ROLLBACK');
-        res.status(400).json({ error: `Insufficient shares. Have ${shares}, trying to sell ${qty}` });
-        return;
-      }
-
-      const newShares = shares - qty;
-      // Proportionally reduce total cost
-      const costReduction = shares > 0 ? (qty / shares) * totalCost : 0;
-      const newTotalCost = Math.max(0, totalCost - costReduction);
-      const newAvgEntry = newShares > 0 ? newTotalCost / newShares : 0;
-
-      const sharesCol = asset === 'A' ? 'shares_a' : 'shares_b';
-      const avgCol = asset === 'A' ? 'avg_entry_a' : 'avg_entry_b';
-      const costCol = asset === 'A' ? 'total_cost_a' : 'total_cost_b';
-
-      await client.query(
-        `UPDATE users SET cash = cash + $1, ${sharesCol} = $2, ${avgCol} = $3, ${costCol} = $4 WHERE id = $5`,
-        [total, newShares, newAvgEntry, newTotalCost, req.user!.userId]
-      );
-    }
-
-    // Record the trade within the same transaction
-    const { rows: tradeRows } = await client.query<TradeRow>(
-      `INSERT INTO trades (user_id, asset, side, quantity, price, total)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [req.user!.userId, asset, side, qty, price, total]
-    );
-    const trade = tradeRows[0];
-
-    // Fetch updated user
-    const { rows: updatedRows } = await client.query<UserRow>(
-      'SELECT * FROM users WHERE id = $1',
-      [req.user!.userId]
-    );
-
-    await client.query('COMMIT');
-
     res.json({
       trade: {
-        id: trade.id,
-        asset: trade.asset,
-        side: trade.side,
-        quantity: trade.quantity,
-        price: parseFloat(trade.price),
-        total: parseFloat(trade.total),
-        ts: trade.ts.toISOString(),
+        id: result.trade.id,
+        asset: result.trade.asset,
+        side: result.trade.side,
+        quantity: result.trade.quantity,
+        price: result.trade.price,
+        total: result.trade.total,
+        ts: result.trade.ts,
       },
-      portfolio: toPublicUser(updatedRows[0]),
+      portfolio: result.portfolio,
     });
   } catch (err: any) {
-    await client.query('ROLLBACK');
     console.error('[Trading] Trade error:', err.message);
     res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    client.release();
   }
 });
 

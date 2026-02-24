@@ -1,60 +1,60 @@
-import { pool } from '../pool.js';
+import { db } from '../db.js';
 
 export interface PriceHistoryRow {
   id: number;
-  ts: Date;
-  open: string;
-  high: string;
-  low: string;
-  close: string;
-  volume: string;
+  ts: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
 }
 
 export interface PriceStateRow {
   id: number;
-  last_price: string;
+  last_price: number;
   last_seed: number;
   tick_count: number;
-  last_updated: Date;
+  last_updated: string;
 }
 
-export async function getPriceState(): Promise<PriceStateRow | null> {
-  const { rows } = await pool.query<PriceStateRow>(
-    'SELECT * FROM price_state WHERE id = 1'
-  );
-  return rows[0] || null;
+export function getPriceState(): PriceStateRow | null {
+  const row = db.prepare('SELECT * FROM price_state WHERE id = 1').get() as PriceStateRow | undefined;
+  return row || null;
 }
 
-export async function updatePriceState(
+export function updatePriceState(
   price: number,
   seed: number,
   tickCount: number
-): Promise<void> {
-  await pool.query(
+): void {
+  db.prepare(
     `UPDATE price_state SET
-      last_price = $1, last_seed = $2, tick_count = $3, last_updated = NOW()
-    WHERE id = 1`,
-    [price, seed, tickCount]
-  );
+      last_price = ?, last_seed = ?, tick_count = ?, last_updated = datetime('now')
+    WHERE id = 1`
+  ).run(price, seed, tickCount);
 }
 
-export async function insertCandle(
+export function insertCandle(
   open: number,
   high: number,
   low: number,
   close: number,
   volume: number
-): Promise<void> {
-  await pool.query(
-    'INSERT INTO price_history (open, high, low, close, volume) VALUES ($1, $2, $3, $4, $5)',
-    [open, high, low, close, volume]
-  );
+): void {
+  db.prepare(
+    'INSERT INTO price_history (open, high, low, close, volume) VALUES (?, ?, ?, ?, ?)'
+  ).run(open, high, low, close, volume);
 }
 
-export async function getHistory(limit: number = 10000): Promise<PriceHistoryRow[]> {
-  const { rows } = await pool.query<PriceHistoryRow>(
-    'SELECT * FROM price_history ORDER BY ts ASC LIMIT $1',
-    [limit]
-  );
-  return rows;
+export function getHistory(limit: number = 10000): PriceHistoryRow[] {
+  return db.prepare(
+    'SELECT * FROM price_history ORDER BY ts ASC LIMIT ?'
+  ).all(limit) as PriceHistoryRow[];
+}
+
+export function getAllPriceHistory(): PriceHistoryRow[] {
+  return db.prepare(
+    'SELECT * FROM price_history ORDER BY ts ASC'
+  ).all() as PriceHistoryRow[];
 }

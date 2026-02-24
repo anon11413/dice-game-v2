@@ -1,18 +1,18 @@
-import { pool } from '../pool.js';
+import { db } from '../db.js';
 
 export interface UserRow {
   id: number;
   username: string;
   password_hash: string;
-  cash: string; // NUMERIC comes back as string from pg
+  cash: number;
   shares_a: number;
   shares_b: number;
-  avg_entry_a: string;
-  avg_entry_b: string;
-  total_cost_a: string;
-  total_cost_b: string;
-  created_at: Date;
-  last_seen: Date;
+  avg_entry_a: number;
+  avg_entry_b: number;
+  total_cost_a: number;
+  total_cost_b: number;
+  created_at: string;
+  last_seen: string;
 }
 
 export interface UserPublic {
@@ -32,64 +32,49 @@ export function toPublicUser(row: UserRow): UserPublic {
   return {
     id: row.id,
     username: row.username,
-    cash: parseFloat(row.cash),
+    cash: row.cash,
     sharesA: row.shares_a,
     sharesB: row.shares_b,
-    avgEntryA: parseFloat(row.avg_entry_a),
-    avgEntryB: parseFloat(row.avg_entry_b),
-    totalCostA: parseFloat(row.total_cost_a),
-    totalCostB: parseFloat(row.total_cost_b),
-    createdAt: row.created_at.toISOString(),
+    avgEntryA: row.avg_entry_a,
+    avgEntryB: row.avg_entry_b,
+    totalCostA: row.total_cost_a,
+    totalCostB: row.total_cost_b,
+    createdAt: row.created_at,
   };
 }
 
-export async function findByUsername(username: string): Promise<UserRow | null> {
-  const { rows } = await pool.query<UserRow>(
-    'SELECT * FROM users WHERE username = $1',
-    [username]
-  );
-  return rows[0] || null;
+export function findByUsername(username: string): UserRow | null {
+  const row = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as UserRow | undefined;
+  return row || null;
 }
 
-export async function findById(id: number): Promise<UserRow | null> {
-  const { rows } = await pool.query<UserRow>(
-    'SELECT * FROM users WHERE id = $1',
-    [id]
-  );
-  return rows[0] || null;
+export function findById(id: number): UserRow | null {
+  const row = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as UserRow | undefined;
+  return row || null;
 }
 
-export async function createUser(username: string, passwordHash: string): Promise<UserRow> {
-  const { rows } = await pool.query<UserRow>(
-    'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING *',
-    [username, passwordHash]
-  );
-  return rows[0];
+export function createUser(username: string, passwordHash: string): UserRow {
+  const info = db.prepare(
+    'INSERT INTO users (username, password_hash) VALUES (?, ?)'
+  ).run(username, passwordHash);
+  return db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid) as UserRow;
 }
 
-export async function updateLastSeen(id: number): Promise<void> {
-  await pool.query('UPDATE users SET last_seen = NOW() WHERE id = $1', [id]);
+export function updateLastSeen(id: number): void {
+  db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(id);
 }
 
-export async function resetAccount(id: number): Promise<UserRow> {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query('DELETE FROM trades WHERE user_id = $1', [id]);
-    const { rows } = await client.query<UserRow>(
+export function resetAccount(id: number): UserRow {
+  const resetTxn = db.transaction(() => {
+    db.prepare('DELETE FROM trades WHERE user_id = ?').run(id);
+    db.prepare(
       `UPDATE users SET
         cash = 100.00, shares_a = 0, shares_b = 0,
         avg_entry_a = 0, avg_entry_b = 0,
         total_cost_a = 0, total_cost_b = 0
-      WHERE id = $1 RETURNING *`,
-      [id]
-    );
-    await client.query('COMMIT');
-    return rows[0];
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+      WHERE id = ?`
+    ).run(id);
+    return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as UserRow;
+  });
+  return resetTxn();
 }

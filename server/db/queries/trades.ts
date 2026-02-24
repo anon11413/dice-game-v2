@@ -1,4 +1,4 @@
-import { pool } from '../pool.js';
+import { db } from '../db.js';
 
 export interface TradeRow {
   id: number;
@@ -6,34 +6,37 @@ export interface TradeRow {
   asset: 'A' | 'B';
   side: 'BUY' | 'SELL';
   quantity: number;
-  price: string;
-  total: string;
-  ts: Date;
+  price: number;
+  total: number;
+  ts: string;
 }
 
-export async function insertTrade(
+export function insertTrade(
   userId: number,
   asset: 'A' | 'B',
   side: 'BUY' | 'SELL',
   quantity: number,
   price: number,
   total: number
-): Promise<TradeRow> {
-  const { rows } = await pool.query<TradeRow>(
+): TradeRow {
+  const info = db.prepare(
     `INSERT INTO trades (user_id, asset, side, quantity, price, total)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [userId, asset, side, quantity, price, total]
-  );
-  return rows[0];
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(userId, asset, side, quantity, price, total);
+  return db.prepare('SELECT * FROM trades WHERE id = ?').get(info.lastInsertRowid) as TradeRow;
 }
 
-export async function getTradeHistory(
+export function getTradeHistory(
   userId: number,
   limit: number = 100
-): Promise<TradeRow[]> {
-  const { rows } = await pool.query<TradeRow>(
-    'SELECT * FROM trades WHERE user_id = $1 ORDER BY ts DESC LIMIT $2',
-    [userId, limit]
-  );
-  return rows;
+): TradeRow[] {
+  return db.prepare(
+    'SELECT * FROM trades WHERE user_id = ? ORDER BY ts DESC LIMIT ?'
+  ).all(userId, limit) as TradeRow[];
+}
+
+export function getAllTradesForUser(userId: number): TradeRow[] {
+  return db.prepare(
+    'SELECT * FROM trades WHERE user_id = ? ORDER BY ts DESC'
+  ).all(userId) as TradeRow[];
 }

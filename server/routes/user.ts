@@ -5,15 +5,15 @@ import { getTradeHistory } from '../db/queries/trades.js';
 
 const router = Router();
 
-router.get('/me', requireAuth, async (req, res) => {
+router.get('/me', requireAuth, (req, res) => {
   try {
-    const user = await findById(req.user!.userId);
+    const user = findById(req.user!.userId);
     if (!user) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
 
-    await updateLastSeen(user.id);
+    updateLastSeen(user.id);
     res.json({ user: toPublicUser(user) });
   } catch (err: any) {
     console.error('[User] Get profile error:', err.message);
@@ -21,19 +21,19 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/trades', requireAuth, async (req, res) => {
+router.get('/trades', requireAuth, (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
-    const rows = await getTradeHistory(req.user!.userId, limit);
+    const rows = getTradeHistory(req.user!.userId, limit);
 
     const trades = rows.map((r) => ({
       id: r.id,
       asset: r.asset,
       side: r.side,
       quantity: r.quantity,
-      price: parseFloat(r.price),
-      total: parseFloat(r.total),
-      ts: r.ts.toISOString(),
+      price: r.price,
+      total: r.total,
+      ts: r.ts,
     }));
 
     res.json({ trades });
@@ -43,9 +43,9 @@ router.get('/trades', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/settings/reset', requireAuth, async (req, res) => {
+router.post('/settings/reset', requireAuth, (req, res) => {
   try {
-    const user = await resetAccount(req.user!.userId);
+    const user = resetAccount(req.user!.userId);
     res.json({ user: toPublicUser(user), message: 'Account reset to $100' });
   } catch (err: any) {
     console.error('[User] Reset error:', err.message);

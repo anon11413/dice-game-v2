@@ -1,51 +1,50 @@
 CREATE TABLE IF NOT EXISTS users (
-  id            SERIAL PRIMARY KEY,
-  username      VARCHAR(50) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  cash          NUMERIC(12, 2) NOT NULL DEFAULT 100.00,
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  username      TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  cash          REAL NOT NULL DEFAULT 100.00,
   shares_a      INTEGER NOT NULL DEFAULT 0,
   shares_b      INTEGER NOT NULL DEFAULT 0,
-  avg_entry_a   NUMERIC(12, 4) NOT NULL DEFAULT 0,
-  avg_entry_b   NUMERIC(12, 4) NOT NULL DEFAULT 0,
-  total_cost_a  NUMERIC(14, 2) NOT NULL DEFAULT 0,
-  total_cost_b  NUMERIC(14, 2) NOT NULL DEFAULT 0,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  last_seen     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  avg_entry_a   REAL NOT NULL DEFAULT 0,
+  avg_entry_b   REAL NOT NULL DEFAULT 0,
+  total_cost_a  REAL NOT NULL DEFAULT 0,
+  total_cost_b  REAL NOT NULL DEFAULT 0,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  last_seen     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS price_history (
-  id        SERIAL PRIMARY KEY,
-  ts        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  open      NUMERIC(12, 4) NOT NULL,
-  high      NUMERIC(12, 4) NOT NULL,
-  low       NUMERIC(12, 4) NOT NULL,
-  close     NUMERIC(12, 4) NOT NULL,
-  volume    BIGINT NOT NULL DEFAULT 0
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts        TEXT NOT NULL DEFAULT (datetime('now')),
+  open      REAL NOT NULL,
+  high      REAL NOT NULL,
+  low       REAL NOT NULL,
+  close     REAL NOT NULL,
+  volume    INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_price_history_ts ON price_history(ts);
 
 CREATE TABLE IF NOT EXISTS price_state (
   id           INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-  last_price   NUMERIC(12, 4) NOT NULL DEFAULT 100.0,
+  last_price   REAL NOT NULL DEFAULT 100.0,
   last_seed    INTEGER NOT NULL DEFAULT 42,
   tick_count   INTEGER NOT NULL DEFAULT 0,
-  last_updated TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  last_updated TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-INSERT INTO price_state (last_price, last_seed, tick_count)
-VALUES (100.0, 42, 0)
-ON CONFLICT (id) DO NOTHING;
+INSERT OR IGNORE INTO price_state (id, last_price, last_seed, tick_count)
+VALUES (1, 100.0, 42, 0);
 
 CREATE TABLE IF NOT EXISTS trades (
-  id        SERIAL PRIMARY KEY,
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  asset     CHAR(1) NOT NULL CHECK (asset IN ('A', 'B')),
-  side      VARCHAR(4) NOT NULL CHECK (side IN ('BUY', 'SELL')),
+  asset     TEXT NOT NULL CHECK (asset IN ('A', 'B')),
+  side      TEXT NOT NULL CHECK (side IN ('BUY', 'SELL')),
   quantity  INTEGER NOT NULL CHECK (quantity > 0),
-  price     NUMERIC(12, 4) NOT NULL,
-  total     NUMERIC(14, 2) NOT NULL,
-  ts        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  price     REAL NOT NULL,
+  total     REAL NOT NULL,
+  ts        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_trades_user ON trades(user_id, ts DESC);

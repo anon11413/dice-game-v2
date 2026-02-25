@@ -22,7 +22,7 @@ interface Props {
   resolution: number;
   mode: 'candle' | 'line';
   activeAsset?: 'A' | 'B';
-  onVisibleRangeChange?: (range: import('lightweight-charts').LogicalRange | null) => void;
+  onVisibleRangeChange?: (range: import('lightweight-charts').IRange<import('lightweight-charts').Time> | null) => void;
 }
 
 /** Invert Stock A candle to Stock B (priceB = max(0.01, 200 - priceA)) */
@@ -84,7 +84,7 @@ export function PriceChart({ resolution, mode, activeAsset = 'A', onVisibleRange
       },
       rightPriceScale: {
         borderColor: '#1c2333',
-        minimumWidth: 60,
+        minimumWidth: 80,
       },
       timeScale: {
         borderColor: '#1c2333',
@@ -117,14 +117,14 @@ export function PriceChart({ resolution, mode, activeAsset = 'A', onVisibleRange
     });
     ro.observe(containerRef.current);
 
-    // Sync visible range to sub-panes (v5 API: subscribe returns void, must use separate unsubscribe)
-    const rangeHandler = (range: import('lightweight-charts').LogicalRange | null) => {
+    // Sync visible range to sub-panes via time range (immune to logical-index whitespace issues)
+    const rangeHandler = (range: import('lightweight-charts').IRange<import('lightweight-charts').Time> | null) => {
       onRangeChangeRef.current?.(range);
     };
-    chart.timeScale().subscribeVisibleLogicalRangeChange(rangeHandler);
+    chart.timeScale().subscribeVisibleTimeRangeChange(rangeHandler);
 
     return () => {
-      chart.timeScale().unsubscribeVisibleLogicalRangeChange(rangeHandler);
+      chart.timeScale().unsubscribeVisibleTimeRangeChange(rangeHandler);
       cancelAnimationFrame(resizeRaf);
       ro.disconnect();
       chart.remove();

@@ -119,6 +119,7 @@ export function broadcastAnalysis(data: {
   shortInterest: number;
   utilization: number;
   bookSnapshot: { bids: any[]; asks: any[]; bestBid: number | null; bestAsk: number | null; spread: number | null };
+  F_t: number;
 }): void {
   if (!wss) return;
 

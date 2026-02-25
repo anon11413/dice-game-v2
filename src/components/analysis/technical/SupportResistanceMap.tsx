@@ -65,7 +65,7 @@ export function SupportResistanceMap() {
   const animRef = useRef<number>(0);
 
   const bookSnapshot = useMarketStore((s) => s.bookSnapshot);
-  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.ONE_SEC) ?? EMPTY_CANDLES);
+  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.ONE_MIN) ?? EMPTY_CANDLES);
   const currentPrice = useMarketStore((s) => s.price);
 
   const srLevels = useMemo(() => detectSRLevels(candles), [candles]);

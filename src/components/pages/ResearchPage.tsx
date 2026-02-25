@@ -1,34 +1,13 @@
-import { useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-
 const SSRN_URL = 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6285320';
-const PAPER_MD = '/dice-stock-paper-v2.md';
+const PAPER_PDF = '/dice-stock-paper.pdf';
 const SLIDES_PDF = '/DiceStock_Market_Dynamics.pdf';
+
+import { useState } from 'react';
 
 type Tab = 'overview' | 'paper';
 
 export function ResearchPage() {
   const [tab, setTab] = useState<Tab>('overview');
-  const [markdown, setMarkdown] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(PAPER_MD)
-      .then((res) => res.text())
-      .then((text) => {
-        // Strip YAML front matter if present
-        let stripped = text.replace(/^---[\s\S]*?---\s*/, '');
-        // Fix image paths: ../paper-assets/ → /paper-assets/
-        stripped = stripped.replace(/\.\.\//g, '/');
-        setMarkdown(stripped);
-        setLoading(false);
-      })
-      .catch(() => {
-        setMarkdown('Failed to load paper.');
-        setLoading(false);
-      });
-  }, []);
 
   return (
     <div className="h-full flex flex-col">
@@ -72,17 +51,11 @@ export function ResearchPage() {
           title="DiceStock Overview Slides"
         />
       ) : (
-        <div className="flex-1 overflow-y-auto bg-[#0d1117]">
-          {loading ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              Loading paper...
-            </div>
-          ) : (
-            <article className="paper-content max-w-4xl mx-auto px-6 py-8">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
-            </article>
-          )}
-        </div>
+        <iframe
+          src={PAPER_PDF}
+          className="flex-1 w-full border-0"
+          title="DiceStock Research Paper"
+        />
       )}
     </div>
   );

@@ -350,6 +350,7 @@ export class Engine {
       buyVolume: this.lastBuyVolume,
       sellVolume: this.lastSellVolume,
       depthBySource: this.book.getDepthBySource(),
+      F_t: this.state.F_t,
     };
   }
 

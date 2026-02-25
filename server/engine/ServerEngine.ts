@@ -117,6 +117,7 @@ export class ServerEngine {
     shortInterest: number;
     utilization: number;
     bookSnapshot: BookSnapshot;
+    F_t: number;
   } {
     const stats = this.engine.getBandStats();
     const state = this.engine.getState();
@@ -141,6 +142,7 @@ export class ServerEngine {
       buyVolume: extended.buyVolume,
       sellVolume: extended.sellVolume,
       depthBySource: extended.depthBySource,
+      F_t: state.F_t,
     };
   }
 

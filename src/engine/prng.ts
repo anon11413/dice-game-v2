@@ -1,21 +1,73 @@
 /**
- * Seeded pseudo-random number generator (Mulberry32).
- * Fast, deterministic, 32-bit state. All engine randomness flows through this.
+ * Seeded pseudo-random number generator — xoshiro128** (Blackman & Vigna, 2018).
+ *
+ * 128-bit state (4 × 32-bit integers), period 2^128 − 1 ≈ 3.4 × 10^38.
+ * Uses only 32-bit operations (shifts, XOR, rotations) — fast in JS, no BigInt.
+ * Passes BigCrush and PractRand statistical test suites.
+ *
+ * Seeded via SplitMix32: a single 32-bit seed is expanded into the 4-word state.
+ * All engine randomness flows through this single instance.
+ *
+ * Replaces Mulberry32 (32-bit state, period 2^32 ≈ 4.3 billion) which exhausted
+ * its period ~20× during a 75-year simulation run (88.4 billion PRNG calls).
  */
+
+/** 32-bit left rotation */
+function rotl(x: number, k: number): number {
+  return ((x << k) | (x >>> (32 - k))) | 0;
+}
+
+/** SplitMix32 — expands a single seed into independent 32-bit state words */
+function splitmix32(seed: number): () => number {
+  let z = seed | 0;
+  return () => {
+    z = (z + 0x9e3779b9) | 0;
+    let t = z ^ (z >>> 16);
+    t = Math.imul(t, 0x21f0aaad);
+    t = t ^ (t >>> 15);
+    t = Math.imul(t, 0x735a2d97);
+    t = t ^ (t >>> 15);
+    return t >>> 0;
+  };
+}
+
 export class PRNG {
-  private state: number;
+  private s0: number;
+  private s1: number;
+  private s2: number;
+  private s3: number;
 
   constructor(seed: number) {
-    this.state = seed | 0;
+    // Expand single seed into 4 × 32-bit state via SplitMix32
+    const sm = splitmix32(seed);
+    this.s0 = sm();
+    this.s1 = sm();
+    this.s2 = sm();
+    this.s3 = sm();
+
+    // Guard against all-zero state (period degenerates to 0)
+    if ((this.s0 | this.s1 | this.s2 | this.s3) === 0) {
+      this.s0 = 1;
+    }
   }
 
   /** Returns a float in [0, 1) */
   next(): number {
-    this.state |= 0;
-    this.state = (this.state + 0x6d2b79f5) | 0;
-    let t = Math.imul(this.state ^ (this.state >>> 15), 1 | this.state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    // xoshiro128** scrambler: rotl(s1 * 5, 7) * 9
+    const result = (Math.imul(rotl(Math.imul(this.s1, 5), 7), 9)) >>> 0;
+
+    // State update
+    const t = this.s1 << 9;
+
+    this.s2 ^= this.s0;
+    this.s3 ^= this.s1;
+    this.s1 ^= this.s2;
+    this.s0 ^= this.s3;
+
+    this.s2 ^= t;
+    this.s3 = rotl(this.s3, 11);
+
+    return result / 4294967296;  // [0, 1)
   }
 
   /** Returns an integer in [min, max] inclusive */

@@ -205,6 +205,7 @@ export interface ExtendedAnalysisData {
   buyVolume: number;
   sellVolume: number;
   depthBySource: DepthBySource;
+  F_t: number;
 }
 
 export interface RevealData {

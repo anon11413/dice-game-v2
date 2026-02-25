@@ -156,7 +156,7 @@ function AlertCard({ alert }: { alert: DivergenceAlert }) {
 }
 
 export function DivergenceScanner() {
-  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.ONE_SEC) ?? EMPTY_CANDLES);
+  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.ONE_MIN) ?? EMPTY_CANDLES);
   const alerts = useMemo(() => scanDivergences(candles), [candles]);
 
   return (

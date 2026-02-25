@@ -315,7 +315,7 @@ function TtmSqueezeLed({ squeeze }: { squeeze: { momentum: number | null; squeez
 }
 
 export function IndicatorDashboard() {
-  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.ONE_SEC) ?? EMPTY_CANDLES);
+  const candles = useMarketStore((s) => s.candles.get(RESOLUTIONS.ONE_MIN) ?? EMPTY_CANDLES);
 
   const computed = useMemo(() => {
     if (candles.length < 2) {

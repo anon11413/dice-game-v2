@@ -3,6 +3,22 @@ import { useAnalysisStore } from '../../../store/analysisStore';
 import { useMarketStore } from '../../../store/marketStore';
 
 const DISPLAY_COUNT = 50;
+const BUCKET_SIZE = 65; // 1 minute = 325 ticks/min ÷ 5 ticks/update = 65 raw entries
+
+/** Aggregate raw per-update entries into 1-minute buckets (aligned from end) */
+function bucketize(raw: number[], bucketSize: number, displayCount: number): number[] {
+  if (raw.length === 0) return [];
+  const result: number[] = [];
+  let i = raw.length;
+  while (i > 0 && result.length < displayCount) {
+    const chunkStart = Math.max(0, i - bucketSize);
+    let sum = 0;
+    for (let j = chunkStart; j < i; j++) sum += raw[j];
+    result.unshift(sum);
+    i = chunkStart;
+  }
+  return result;
+}
 
 export function OrderFlowSummary() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -40,9 +56,9 @@ export function OrderFlowSummary() {
     const H = canvas.height;
     ctx.clearRect(0, 0, W, H);
 
-    // Slice last DISPLAY_COUNT entries
-    const buySlice = buyHistory.slice(-DISPLAY_COUNT);
-    const sellSlice = sellHistory.slice(-DISPLAY_COUNT);
+    // Aggregate raw per-second entries into 1-minute buckets
+    const buySlice = bucketize(buyHistory, BUCKET_SIZE, DISPLAY_COUNT);
+    const sellSlice = bucketize(sellHistory, BUCKET_SIZE, DISPLAY_COUNT);
     const len = Math.max(buySlice.length, sellSlice.length);
 
     if (len === 0) {
@@ -211,7 +227,7 @@ export function OrderFlowSummary() {
 
   return (
     <div className="bg-[#0d1117] rounded-lg p-3 border border-gray-800">
-      <h3 className="text-sm font-medium text-gray-300 mb-2">Order Flow Summary</h3>
+      <h3 className="text-sm font-medium text-gray-300 mb-2">Order Flow Summary (1 min)</h3>
       <canvas
         ref={canvasRef}
         width={400}

@@ -126,6 +126,7 @@ export class ServerBridge {
           buyVolume: data.buyVolume ?? 0,
           sellVolume: data.sellVolume ?? 0,
           depthBySource: data.depthBySource ?? {},
+          F_t: data.F_t,
         });
       }
       // Track spread history

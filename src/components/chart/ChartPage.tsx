@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import type { LogicalRange } from 'lightweight-charts';
+import type { IRange, Time } from 'lightweight-charts';
 import { TickerBar } from './TickerBar';
 import { ResolutionSelector } from './ResolutionSelector';
 import { ChartModeToggle } from './ChartModeToggle';
@@ -19,9 +19,9 @@ export function ChartPage() {
   const [chartMode, setChartMode] = useState<'candle' | 'line'>('candle');
   const [showTrade, setShowTrade] = useState(false);
   const [activeAsset, setActiveAsset] = useState<'A' | 'B'>('A');
-  const [visibleRange, setVisibleRange] = useState<LogicalRange | null>(null);
+  const [visibleRange, setVisibleRange] = useState<IRange<Time> | null>(null);
   const indicators = useIndicatorStore((s) => s.enabled);
-  const handleVisibleRangeChange = useCallback((range: LogicalRange | null) => setVisibleRange(range), []);
+  const handleVisibleRangeChange = useCallback((range: IRange<Time> | null) => setVisibleRange(range), []);
   const location = useLocation();
   const isPlayerMode = location.pathname.startsWith('/play');
 

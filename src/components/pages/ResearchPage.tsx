@@ -1,5 +1,5 @@
 const SSRN_URL = 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6285320';
-const PAPER_PDF = '/dice-stock-paper.pdf';
+const PAPER_PDF = '/dice-stock-paper-v2.pdf';
 const SLIDES_PDF = '/DiceStock_Market_Dynamics.pdf';
 
 import { useState } from 'react';
